@@ -4,34 +4,47 @@ import cv2
 import os
 import re
 import numpy as np
+import pandas as pd
+import pdb
 
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
+# as well as path for images and list of image names
+images = []
+dir = "images/"
 refPt = []
 cropping = False
 
 def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
-    global refPt, cropping
-    
+    global refPt, cropping, cv_im
+    drawing = False
+
     # if the left mouse button was clicked, record the starting
     # (x, y) coordinates and indicate that cropping is being
     # performed
     if event == cv2.EVENT_LBUTTONDOWN:
         refPt = [(x, y)]
-        #print(x, y)
         cropping = True
-            
+
+    elif cropping and event == cv2.EVENT_MOUSEMOVE:
+        if refPt:
+            cv_im = clone.copy()
+            orig_x = refPt[0][0]
+            orig_y = refPt[0][1]
+            cv2.rectangle(cv_im, (orig_x, orig_y), (x, y), (0,255,0), 1)
+            cv2.imshow("image", cv_im)
+
     # check to see if the left mouse button was released
     elif event == cv2.EVENT_LBUTTONUP:
-	# record the ending (x, y) coordinates and indicate that
-	# the cropping operation is finished
+        # record the ending (x, y) coordinates and indicate that
+        # the cropping operation is finished
         refPt.append((x, y))
         #print(x, y)
         cropping = False
-            
-	# draw a rectangle around the region of interest
-        cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 2)
+
+        # draw a rectangle around the region of interest
+        cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 1)
         cv2.imshow("image", cv_im)
 
 def auto_bbox(image):
@@ -64,16 +77,16 @@ def print_help():
     print("If the estimate is wrong, press r to reset the screen, and draw the bounding box with the mouse. Box shows only after you release the mouse button")
     print("If the image does not belong to a drone, press x")
     print("Program terminates after cycling through all images in the 'images' folder")
-    
-images = []
-dir = "images/"
 
-for file in os.listdir(dir):
-    if file.endswith(".jpg") or file.endswith(".jpeg"):
-        images.append(dir + file)
-#print(images)
+def find_images():
+    global images
+    for file in os.listdir(dir):
+        if file.endswith(".jpg") or file.endswith(".jpeg"):
+            images.append(dir + file)
 
 # load the image, clone it, and setup the mouse callback function
+
+find_images()
 print_help()
 
 bboxes = []
@@ -82,18 +95,19 @@ for image in images:
     clone = cv_im.copy()
     refPt = auto_bbox(cv_im)
     cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 2)
-        
+
     cv2.namedWindow("image")
-    cv2.moveWindow("image", 2000, 20)
+    cv2.moveWindow("image", 20, 20)
     cv2.setMouseCallback("image", click_and_crop)
-    
+
     # keep looping until the 'q' key is pressed
-    while True:
-	# display the image and wait for a keypress
+    cycle = True
+    while cycle:
+        # display the image and wait for a keypress
         cv2.imshow("image", cv_im)
         key = cv2.waitKey(0) & 0xFF
-            
-	# if the 'r' key is pressed, reset the cropping region
+
+        # if the 'r' key is pressed, reset the cropping region
         if key == ord("r"):
             cv_im = clone.copy()
 
@@ -106,7 +120,13 @@ for image in images:
         elif key == ord("s"):
             bboxes.append(refPt)
             break
-                   
+
+        if key == ord("q"):
+            cycle = False
+
+    if not cycle:
+        break
+
 # close all open windows
 cv2.destroyAllWindows()
 print(bboxes)
