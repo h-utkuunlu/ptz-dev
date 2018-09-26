@@ -4,17 +4,18 @@ import cv2
 import os
 import re
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import pdb
 
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
 # as well as path for images and list of image names
-images = []
-dir = "images/"
-refPt = []
-cropping = False
 
+parser = argparse.ArgumentParser()
+parser.add_argument("folder", help="Folder name with images to make labels for")
+parser.add_argument("-o", "--output", default=None, help="Image label csv file name. Default is <folder>.csv")
+args = parser.parse_args()
+    
 def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
     global refPt, cropping, cv_im
@@ -32,7 +33,7 @@ def click_and_crop(event, x, y, flags, param):
             cv_im = clone.copy()
             orig_x = refPt[0][0]
             orig_y = refPt[0][1]
-            cv2.rectangle(cv_im, (orig_x, orig_y), (x, y), (0,255,0), 1)
+            cv2.rectangle(cv_im, (orig_x, orig_y), (x, y), (0,255,0), 2)
             cv2.imshow("image", cv_im)
 
     # check to see if the left mouse button was released
@@ -44,7 +45,7 @@ def click_and_crop(event, x, y, flags, param):
         cropping = False
 
         # draw a rectangle around the region of interest
-        cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 1)
+        cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 2)
         cv2.imshow("image", cv_im)
 
 def auto_bbox(image):
@@ -67,29 +68,61 @@ def auto_bbox(image):
         c = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(c)
         return [(x, y), (x+w, y+h)]
-
     else:
         return [(0, 0), (0, 0)]
 
 def print_help():
     print("Usage:")
     print("If the bounding box prediction is right, press s to save it")
-    print("If the estimate is wrong, press r to reset the screen, and draw the bounding box with the mouse. Box shows only after you release the mouse button")
-    print("If the image does not belong to a drone, press x")
+    print("If the estimate is wrong, draw the correct bounding box with the mouse.")
+    print("If the image does not belong to a drone, press d")
     print("Program terminates after cycling through all images in the 'images' folder")
 
-def find_images():
-    global images
-    for file in os.listdir(dir):
-        if file.endswith(".jpg") or file.endswith(".jpeg"):
-            images.append(dir + file)
+outfile = ""
+def add_label(im_name, prob, top_x, top_y, bot_x, bot_y):
+    '''
+    Append the entry to the specified label file
+    '''
+    global outfile
+    #print(top_x, top_y, bot_x, bot_y)
+    w = bot_x - top_x
+    h = bot_y - top_y
+    entry_list = [im_name, prob, str(top_x), str(top_y), str(w), str(h)]
+    #print(entry_list)
 
-# load the image, clone it, and setup the mouse callback function
+    with open(outfile, 'a') as f:
+        csv_entry = ','.join(entry_list) + "\n" 
+        f.write(csv_entry)
 
-find_images()
+images = []
+refPt = []
+cropping = False
+
+# Set file names to read from / save into
+dir = args.folder
+if args.output is not None:
+    outfile = args.output
+else:
+    outfile = args.folder + ".csv"
+
+# Check if any entries have been added before
+existing_entries = []    
+if os.path.isfile(outfile):
+    existing_entries = [line.rstrip("\n").split(",")[0] for line in open(outfile, 'r')]
+#print(existing_entries)
+    
+# Populate the list of images to make a list for             
+for file in os.listdir(dir):
+    if (file.endswith(".jpg") or file.endswith(".jpeg")) and (dir + "/" + file not in existing_entries):
+        images.append(dir + "/" + file )
+
+# Check if the entire dataset have been processed before
+if not images:
+    print("All images in the given folder have been labeled. Exiting.. ")
+    exit()
+
 print_help()
 
-bboxes = []
 for image in images:
     cv_im = cv2.imread(image)
     clone = cv_im.copy()
@@ -107,21 +140,23 @@ for image in images:
         cv2.imshow("image", cv_im)
         key = cv2.waitKey(0) & 0xFF
 
-        # if the 'r' key is pressed, reset the cropping region
-        if key == ord("r"):
-            cv_im = clone.copy()
-
-        # if the 'x' key is pressed, there is no drone in the image
+        # if the 'x' key is pressed, the image is not viable. Delete the image
         if key == ord("x"):
-            bboxes.append([(0, 0), (0, 0)])
+            os.remove(image)
+            break
+
+        # if the 'd' key is pressed, there is no drone in the image
+        elif key == ord("d"):
+            add_label(image, "0", 0, 0, 0, 0)
             break
 
         # if the 's' key is pressed, save the bbox coordinates and break from the loop
         elif key == ord("s"):
-            bboxes.append(refPt)
+            add_label(image, "1", refPt[0][0], refPt[0][1], refPt[1][0], refPt[1][1])
             break
 
-        if key == ord("q"):
+        # if the 'q' key is pressed, stop labeling and exit
+        elif key == ord("q"):
             cycle = False
 
     if not cycle:
@@ -129,4 +164,5 @@ for image in images:
 
 # close all open windows
 cv2.destroyAllWindows()
-print(bboxes)
+
+print("Folder completed. Exiting..")
