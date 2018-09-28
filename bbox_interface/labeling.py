@@ -4,8 +4,6 @@ import cv2
 import os
 import re
 import numpy as np
-#import pandas as pd
-import pdb
 
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
@@ -15,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("folder", help="Folder name with images to make labels for")
 parser.add_argument("-o", "--output", default=None, help="Image label csv file name. Default is <folder>.csv")
 args = parser.parse_args()
-    
+
 def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
     global refPt, cropping, cv_im
@@ -78,7 +76,7 @@ def print_help():
     print("If the image does not belong to a drone, press d")
     print("Program terminates after cycling through all images in the 'images' folder")
 
-outfile = ""
+
 def add_label(im_name, prob, top_x, top_y, bot_x, bot_y):
     '''
     Append the entry to the specified label file
@@ -91,9 +89,10 @@ def add_label(im_name, prob, top_x, top_y, bot_x, bot_y):
     #print(entry_list)
 
     with open(outfile, 'a') as f:
-        csv_entry = ','.join(entry_list) + "\n" 
+        csv_entry = ','.join(entry_list) + "\n"
         f.write(csv_entry)
 
+outfile = ""
 images = []
 refPt = []
 cropping = False
@@ -106,15 +105,15 @@ else:
     outfile = args.folder + ".csv"
 
 # Check if any entries have been added before
-existing_entries = []    
+existing_entries = []
 if os.path.isfile(outfile):
     existing_entries = [line.rstrip("\n").split(",")[0] for line in open(outfile, 'r')]
 #print(existing_entries)
-    
-# Populate the list of images to make a list for             
+
+# Populate the list of images to make a list for
 for file in os.listdir(dir):
     if (file.endswith(".jpg") or file.endswith(".jpeg")) and (dir + "/" + file not in existing_entries):
-        images.append(dir + "/" + file )
+        images.append(dir + "/" + file)
 
 # Check if the entire dataset have been processed before
 if not images:
