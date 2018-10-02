@@ -1,5 +1,6 @@
 # import the necessary packages
 import argparse
+import shutil
 import cv2
 import csv
 import os
@@ -152,9 +153,15 @@ def main():
             cv2.imshow("image", cv_im)
             key = cv2.waitKey(0) & 0xFF
 
-            # if the 'x' key is pressed, the image is not viable. Delete the image
+            # if the 'x' key is pressed, the image is not viable. Move image to deleted folder
             if key == ord("x"):
-                os.remove(image)
+                image_folder = image.split('/')[0]
+                del_dir = "deleted/" + image_folder
+                if not os.path.isdir(del_dir):
+                    if not os.path.isdir("deleted"):
+                        os.mkdir("deleted")
+                    os.mkdir(del_dir)
+                shutil.move(image, del_dir)
                 break
 
             # if the 'd' key is pressed, there is no drone in the image
