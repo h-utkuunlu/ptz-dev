@@ -85,7 +85,7 @@ def add_label(im_name, prob, top_x, top_y, bot_x, bot_y):
     #print(top_x, top_y, bot_x, bot_y)
     w = bot_x - top_x
     h = bot_y - top_y
-    entry_list = [im_name, prob, str(top_x), str(top_y), str(w), str(h)]
+    entry_list = [im_name, prob, str(top_y), str(top_x), str(w), str(h)]
     #print(entry_list)
 
     with open(outfile, 'a') as f:
