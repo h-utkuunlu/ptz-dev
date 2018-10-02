@@ -1,6 +1,7 @@
 # import the necessary packages
 import argparse
 import cv2
+import csv
 import os
 import re
 import numpy as np
@@ -77,22 +78,18 @@ def print_help():
     print("Program terminates after cycling through all images in the 'images' folder")
 
 
-def add_label(im_name, prob, top_x, top_y, bot_x, bot_y):
+def add_label(outfile, im_name, prob, top_x, top_y, bot_x, bot_y):
     '''
     Append the entry to the specified label file
     '''
-    global outfile
-    #print(top_x, top_y, bot_x, bot_y)
     w = bot_x - top_x
     h = bot_y - top_y
     entry_list = [im_name, prob, str(top_y), str(top_x), str(w), str(h)]
-    #print(entry_list)
+    f = open(outfile, 'a')
+    writer = csv.writer(f, delimiter=',', quotechar='"')
+    writer.writerow(entry_list)
+    return
 
-    with open(outfile, 'a') as f:
-        csv_entry = ','.join(entry_list) + "\n"
-        f.write(csv_entry)
-
-outfile = ""
 images = []
 refPt = []
 cropping = False
@@ -105,10 +102,15 @@ else:
     outfile = args.folder + ".csv"
 
 # Check if any entries have been added before
-existing_entries = []
+existing_entries = set()
 if os.path.isfile(outfile):
-    existing_entries = [line.rstrip("\n").split(",")[0] for line in open(outfile, 'r')]
-#print(existing_entries)
+    file = open(outfile, 'r')
+    reader = csv.reader(file, delimiter=',', quotechar='"')
+    for entry_list in reader:
+        image_path = entry_list[0]
+        existing_entries.add(image_path)
+
+# print(existing_entries)
 
 # Populate the list of images to make a list for
 for file in os.listdir(dir):
@@ -146,12 +148,12 @@ for image in images:
 
         # if the 'd' key is pressed, there is no drone in the image
         elif key == ord("d"):
-            add_label(image, "0", 0, 0, 0, 0)
+            add_label(outfile, image, "0", 0, 0, 0, 0)
             break
 
         # if the 's' key is pressed, save the bbox coordinates and break from the loop
         elif key == ord("s"):
-            add_label(image, "1", refPt[0][0], refPt[0][1], refPt[1][0], refPt[1][1])
+            add_label(outfile, image, "1", refPt[0][0], refPt[0][1], refPt[1][0], refPt[1][1])
             break
 
         # if the 'q' key is pressed, stop labeling and exit
