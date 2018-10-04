@@ -22,11 +22,19 @@ class Net(nn.Module):
         self.fc2 = nn.Linear(1024, 100)
         self.fc3 = nn.Linear(100, 5)
 
+        self.sigmoid = nn.Sigmoid()
+
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        self.zero = torch.zeros([1, 5], dtype=torch.float).to(self.device)
+        self.zero[0][0] = 1.0
+        self.one = torch.ones([1, 5], dtype=torch.float).to(self.device)
+
         self.out1 = []
        
     def forward(self, x):
         out = F.relu(self.conv1(x))
-        #out = F.relu(self.conv2(out))
+        out = F.relu(self.conv2(out))
         if printstate:
             print(out.size())
         out = self.pool(out)
@@ -34,7 +42,7 @@ class Net(nn.Module):
             print(out.size())
             
         out = F.relu(self.conv3(out))
-        #out = F.relu(self.conv4(out))
+        out = F.relu(self.conv4(out))
         if printstate:
             print(out.size())
         out = self.pool(out)
@@ -42,7 +50,7 @@ class Net(nn.Module):
             print(out.size())
 
         out = F.relu(self.conv5(out))
-        #out = F.relu(self.conv6(out))
+        out = F.relu(self.conv6(out))
         if printstate:
             print(out.size())
         out = self.pool(out)
@@ -50,7 +58,7 @@ class Net(nn.Module):
             print(out.size())
 
         out = F.relu(self.conv7(out))
-        #out = F.relu(self.conv8(out))
+        out = F.relu(self.conv8(out))
         if printstate:
             print(out.size())
         out = self.pool(out)
@@ -66,7 +74,19 @@ class Net(nn.Module):
         out = F.relu(self.fc2(out))
         out = self.fc3(out)
 
-        return out
+        probs = self.sigmoid(out.permute(1, 0)[0])
+        #print(probs)
+
+        masked_out = torch.FloatTensor(0).to(self.device)
+        
+        for iter, i in enumerate(probs):
+            if i < 0.5:
+                masked_out = torch.cat((masked_out, torch.mul(out[iter], self.zero)), 0)
+            else:
+                masked_out = torch.cat((masked_out, torch.mul(out[iter], self.one)), 0)
+
+        #print(masked_out)
+        return masked_out
 
 
 

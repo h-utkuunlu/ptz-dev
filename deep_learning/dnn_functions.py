@@ -34,15 +34,15 @@ def read_stats(file):
 
 #stats = read_stats(args.stats)
 
-def read_datasets(dir="./", statsfile="stats.csv"):
+def read_datasets(dir="datasets/", statsfile="stats.csv"):
     '''
     Read all available txt files to generate one big list
     '''
     data = []
     
     for file in os.listdir(dir):
-        if (file.endswith(".csv") and file != statsfile):
-            data += read_dataset(file)
+        if (file.endswith(".csv") and file != (statsfile)):
+            data += read_dataset(dir + file)
 
     return data
 
@@ -57,7 +57,7 @@ def read_dataset(csv_file):
 
     return data
 
-def read_data(entry, stats):
+def read_data(entry, stats, dir="datasets/"):
     '''
     Given an entry from the csv files that describe the dataset and the statistics about all the data, outputs the workable images and entries
     entry: list that contains path to image [0], presence of a drone [1], bbox r, c, w, and h [2, 3, 4, 5]
@@ -67,16 +67,19 @@ def read_data(entry, stats):
     #TEMPORARY: RESIZING FACTOR
     res_factor = 0.44444445
 
-    raw_image = cv2.imread(entry[0], -1)
+    raw_image = cv2.imread(dir + entry[0], -1)
     res_image = cv2.resize(raw_image, None, fx=res_factor, fy=res_factor, interpolation=cv2.INTER_AREA)
     image = ( np.asarray(res_image, dtype=float) - np.asarray( stats["img_mean"], dtype=float).reshape(1, 1, 3) ) / np.asarray(stats["img_std"], dtype=float).reshape(1, 1, 3)
 
+    '''
+    # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
     r = (entry[2] - stats["r_mean"])*res_factor / stats["r_std"]
     c = (entry[3] - stats["c_mean"])*res_factor / stats["c_std"]
     w = (entry[4] - stats["w_mean"])*res_factor / stats["w_std"]
     h = (entry[5] - stats["h_mean"])*res_factor / stats["h_std"]
-
-    target = [entry[1], r, c, w, h]    
+    '''
+    
+    target = entry[1:]    
     return image, target
 
 def load_data(entries, stats):
@@ -106,8 +109,10 @@ def train_model(input_tensor, target_tensor, network, optimizer, criterion):
     batch_size = target_tensor.size(0)
     
     optimizer.zero_grad()
-    output = network(input_tensor)
 
+    #print(target_tensor)
+    
+    output = network(input_tensor)
     loss = criterion(output, target_tensor)
 
     loss.backward()
@@ -120,7 +125,7 @@ def train_model(input_tensor, target_tensor, network, optimizer, criterion):
 def train_epochs(network, optimizer, args, stats):
     start = time.time()
     batch_size = args.batch
-    criterion = nn.MSELoss(size_average=False)
+    criterion = nn.SmoothL1Loss(size_average=False)
     
     data = read_datasets(args.dataloc)
     
@@ -140,6 +145,9 @@ def train_epochs(network, optimizer, args, stats):
         if iter % args.saverate == 0:
             save_model(network, optimizer, iter, args)
 
+'''
+# Obsolete: No target scaling
+         
 def denormalize(output, stats):
     values = [output.data[0][i].item() for i in range(5)]
     values[1] = int(values[1]*stats["r_std"] + stats["r_mean"])
@@ -148,15 +156,17 @@ def denormalize(output, stats):
     values[4] = int(values[4]*stats["h_std"] + stats["h_mean"])
 
     return values
-    
+
+'''
+
 def evaluate(network, image_path, stats):
     with torch.no_grad():
         entry = [image_path, 0, 0, 0, 0, 0]
         input_tensor, _ =  load_data([entry], stats)
         output = network(input_tensor)
         #print(output.size())
-
-        bbox_output = denormalize(output, stats)
+        bbox_output = [output.data[0][i].item() for i in range(output.size(1))]
+                       
         return bbox_output
 
 def load_model(network, optimizer, model_name):
