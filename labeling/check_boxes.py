@@ -5,16 +5,15 @@ import csv
 import os
 from tempfile import NamedTemporaryFile
 import shutil
-import cfg
 
 parser = argparse.ArgumentParser()
 parser.add_argument("annotations", help="File name with annotations")
 args = parser.parse_args()
 
-refPt = cfg.refPt
-cropping = cfg.cropping
-cv_im = cfg.cv_im
-clone = cfg.clone
+refPt = []
+cropping = False
+cv_im = None
+clone = None
 
 
 def click_and_crop(event, x, y, flags, param):
@@ -52,15 +51,22 @@ def click_and_crop(event, x, y, flags, param):
 def check_annotations():
     global refPt, cropping, cv_im, clone
     # Output file that stores the fixes
-    image_folder_name = args.annotations.split('/')[0][:-4]  # folder of image assumed from annotations name
-    print(image_folder_name)
-    try:
-        output_file = open(image_folder_name + "_edited.csv", 'x')  # create
-    except FileExistsError:
-        output_file = open(image_folder_name + "_edited.csv", 'a')  # append
-
+    image_folder_name = args.annotations[:-4]  # folder of image assumed from annotations name
     annotations = open(args.annotations, 'r')
     reader = csv.reader(annotations, delimiter=',', quotechar='"')
+
+    try:
+        print("Creating out out file: ", image_folder_name + "_verified.csv")
+        output_file = open(image_folder_name + "_verified.csv", 'x')  # create
+    except FileExistsError:
+        output_file = open(image_folder_name + "_verified.csv", 'r')  # append
+        last_image_path = list(csv.reader(output_file, delimiter=',', quotechar='"'))[-1][0]
+        output_file.close()
+        for entry_list in reader:
+            if entry_list[0] == last_image_path:
+                break
+        output_file = open(image_folder_name + "_verified.csv", 'a')  # append
+
     writer = csv.writer(output_file, delimiter=',', quotechar='"')
 
     for entry_list in reader:
@@ -75,9 +81,9 @@ def check_annotations():
         # Open image and current bounding box with OpenCV
         cv_im = cv2.imread(image_path)
         clone = cv_im.copy()
-        cv2.rectangle(cv_im, (col, row), (col+w, row+h), (0, 255, 0), 1)
+        cv2.rectangle(cv_im, (col, row), (col+w, row+h), (0, 255, 0), 3)
         cv2.namedWindow("image")
-        cv2.moveWindow("image", 20, 20)
+        cv2.moveWindow("image", 1366, 0)
         cv2.setMouseCallback("image", click_and_crop)
 
         # Cycle through the images until you exit
@@ -92,20 +98,30 @@ def check_annotations():
                 image_folder = image_path.split('/')[0]
                 del_dir = "deleted/" + image_folder
                 if not os.path.isdir(del_dir):
+                    if not os.path.isdir("deleted"):
+                        os.mkdir("deleted")
                     os.mkdir(del_dir)
-                shutil.move(image_path, del_dir + '/' + image_path)
-                os.remove(image_path)
+                shutil.move(image_path, del_dir)
                 break
 
+            # if the 'd' key is pressed, then you edited the bounding box
             elif key == ord("e"):
                 top_x, top_y = refPt[0][0], refPt[0][1]
                 w = refPt[1][0] - top_x
                 h = refPt[1][1] - top_y
-                entry_list = [image_path, 1, top_y, top_x, w, h]
+                entry = [image_path, 1, top_y, top_x, w, h]
+                writer.writerow(entry)
+                break
+
+            # if the 'd' key is pressed, there is no drone in the image
+            elif key == ord("d"):
+                entry_list = [image_path, 0, 0, 0, 0, 0]
                 writer.writerow(entry_list)
                 break
 
-            elif key == ord("s"):
+            # if the right-arrow is pressed, the entry is correct, so move on
+            elif key == 83:
+                writer.writerow(entry_list)
                 break
 
             # If the 'q' key is pressed, stop labeling and exit

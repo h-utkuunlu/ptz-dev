@@ -6,7 +6,6 @@ import csv
 import os
 import re
 import numpy as np
-import cfg
 
 # initialize the list of reference points and boolean indicating
 # whether cropping is being performed or not
@@ -17,10 +16,10 @@ parser.add_argument("folder", help="Folder name with images to make labels for")
 parser.add_argument("-o", "--output", default=None, help="Image label csv file name. Default is <folder>.csv")
 args = parser.parse_args()
 
-refPt = cfg.refPt
-cropping = cfg.cropping
-cv_im = cfg.cv_im
-clone = cfg.clone
+refPt = []
+cropping = False
+cv_im = None
+clone = None
 
 def click_and_crop(event, x, y, flags, param):
     # grab references to the global variables
@@ -143,7 +142,7 @@ def main():
         cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 1)
 
         cv2.namedWindow("image")
-        cv2.moveWindow("image", 20, 20)
+        cv2.moveWindow("image", 1366, 0)
         cv2.setMouseCallback("image", click_and_crop)
 
         # keep looping until the 'q' key is pressed
