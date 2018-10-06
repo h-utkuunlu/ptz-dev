@@ -11,13 +11,13 @@ def generate_testlist(path):
     images = []
     for file in os.listdir(path):
         if file.endswith(".jpeg") or file.endswith("jpg"):
-            images.append(path + "/" + file)
+            images.append(file)
     return images
 
 parser = argparse.ArgumentParser()
 parser.add_argument('open', help='Open the specified model for evaluation')
 parser.add_argument('test', help='Path to the folder to evaluate images')
-parser.add_argument('-s', '--stats', default='stats.csv', help='.csv file that stores the average and mean values required for normalization process')
+parser.add_argument('-s', '--stats', default='datasets/stats.csv', help='.csv file that stores the average and mean values required for normalization process')
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,6 +35,7 @@ test_images = generate_testlist(args.test)
 
 for image in test_images:
     start = time.time()
+    print(image)
     output = dnn.evaluate(network, image, stats)
     print(image, output)
     print(time.time() - start)

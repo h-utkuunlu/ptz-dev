@@ -78,8 +78,14 @@ def read_data(entry, stats, dir="datasets/"):
     w = (entry[4] - stats["w_mean"])*res_factor / stats["w_std"]
     h = (entry[5] - stats["h_mean"])*res_factor / stats["h_std"]
     '''
-    
-    target = entry[1:]    
+
+    # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
+    r = (entry[2])*res_factor / stats["r_std"]
+    c = (entry[3])*res_factor / stats["c_std"]
+    w = (entry[4])*res_factor / stats["w_std"]
+    h = (entry[5])*res_factor / stats["h_std"]
+   
+    target = [entry[1], r, c, w, h]    
     return image, target
 
 def load_data(entries, stats):

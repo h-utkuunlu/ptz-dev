@@ -74,6 +74,7 @@ class Net(nn.Module):
         out = F.relu(self.fc2(out))
         out = self.fc3(out)
 
+        '''
         probs = self.sigmoid(out.permute(1, 0)[0])
         #print(probs)
 
@@ -87,6 +88,7 @@ class Net(nn.Module):
 
         #print(masked_out)
         return masked_out
-
+        '''
+        return out
 
 

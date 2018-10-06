@@ -3,6 +3,15 @@ import imutils
 from time import sleep, time
 from camera_controls import PTZOptics20x
 from async_reader import Camera
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-H', '--host', default='192.168.1.40', help="Host address for the camera for PTZ control")
+parser.add_argument('-p', '--port', default=5678, help="Port for TCP comms PTZ control", type=int)
+parser.add_argument('-d', '--dev', default=0, help='Camera USB device location for OpenCV', type=int)
+parser.add_argument('-c', '--count', default=600, help='Number of frames to run for non-GUI mode', type=int)
+parser.add_argument('-g', '--gui', help='GUI mode', action='store_true')
+args = parser.parse_args()
 
 def find_object(frame):
     
@@ -127,18 +136,18 @@ def limit(val, max):
 def errors(center, width, height):
     return ((width//2 - center[0])/50, (height//2 - center[1])/30) # Pos. pan error: right. Pos. tilt error: down
 
-host = "192.168.1.40"
-port = 5678
+gui_mode = args.gui
 
-ptz = PTZOptics20x(host, port)
+ptz = PTZOptics20x(args.host, args.port)
 ptz.init()
 
 width = 1280
 height = 720
-source = Camera(2, width, height)
+source = Camera(args.dev, width, height)
 
-cv2.namedWindow("cam")
-cv2.moveWindow("cam", 20, 20)
+if gui_mode:
+    cv2.namedWindow("cam")
+    cv2.moveWindow("cam", 20, 20)
 
 pan_pid = PIDController(1.4, 0.1, 0, 1/50, 2*3.14*10)
 tilt_pid = PIDController(1.4, 0.1, 0, 1/50, 2*3.14*10)
@@ -146,9 +155,8 @@ tilt_pid = PIDController(1.4, 0.1, 0, 1/50, 2*3.14*10)
 start_time = time()
 
 counter = 0
-count_limit = 200
+count_limit = args.count
 
-#while counter < count_limit:
 while True:
     frame = None
     frame = source.cvreader.Read()
@@ -159,28 +167,37 @@ while True:
     out = find_object(frame)
 
     if out is None:
-        cv2.imshow("cam", frame)
+        if gui_mode:
+            cv2.imshow("cam", frame)
         continue
-    
-    #print(time() - start_time)
-    #start_time = time()
     
     center, x, y, radius = out
 
-    cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-    cv2.circle(frame, center, 5, (0, 0, 255), -1)
+    if gui_mode:
+        cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+        cv2.circle(frame, center, 5, (0, 0, 255), -1)
 
-    print(control(errors(center, width, height), pan_pid, tilt_pid, ptz))
+        cv2.imshow("cam", frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+
+    speeds = control(errors(center, width, height), pan_pid, tilt_pid, ptz)
+        
+    print("Commands: ", speeds, "Approx. Frame Rate: ", int(1/ (time() - start_time)))
+
+    start_time = time()
     counter += 1
-    
-    cv2.imshow("cam", frame)
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-        break
 
+    if not gui_mode and counter > count_limit:
+        break
+        
 source.cvreader.Stop()
 source.cvcamera.release()
-cv2.destroyAllWindows()
+
+if gui_mode:
+    cv2.destroyAllWindows()
 
 ptz.stop()
 sleep(1)
+print("Program complete. Exiting..")
