@@ -6,10 +6,10 @@ import math
 import csv
 import argparse
 import os
+
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-import model
+from torch.utils.data import Dataset, DataLoader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -32,16 +32,15 @@ def read_stats(file):
 
     return stats
 
-#stats = read_stats(args.stats)
 
-def read_datasets(dir="datasets/", statsfile="stats.csv"):
+def read_datasets(dir):
     '''
     Read all available txt files to generate one big list
     '''
     data = []
     
     for file in os.listdir(dir):
-        if (file.endswith(".csv") and file != (statsfile)):
+        if (file.endswith(".csv")):
             data += read_dataset(dir + file)
 
     return data
@@ -56,124 +55,40 @@ def read_dataset(csv_file):
             data.append([entry[0], int(entry[1]), int(entry[2]), int(entry[3]), int(entry[4]), int(entry[5])])
 
     return data
-
-def read_data(entry, stats, dir="datasets/"):
-    '''
-    Given an entry from the csv files that describe the dataset and the statistics about all the data, outputs the workable images and entries
-    entry: list that contains path to image [0], presence of a drone [1], bbox r, c, w, and h [2, 3, 4, 5]
-    stats: dictionary that contains mean and std. var. for images and bbox parameters for all datasets
-    '''
-
-    #TEMPORARY: RESIZING FACTOR
-    res_factor = 0.44444445
-
-    raw_image = cv2.imread(dir + entry[0], -1)
-    res_image = cv2.resize(raw_image, None, fx=res_factor, fy=res_factor, interpolation=cv2.INTER_AREA)
-    image = ( np.asarray(res_image, dtype=float) - np.asarray( stats["img_mean"], dtype=float).reshape(1, 1, 3) ) / np.asarray(stats["img_std"], dtype=float).reshape(1, 1, 3)
-
-    '''
-    # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
-    r = (entry[2] - stats["r_mean"])*res_factor / stats["r_std"]
-    c = (entry[3] - stats["c_mean"])*res_factor / stats["c_std"]
-    w = (entry[4] - stats["w_mean"])*res_factor / stats["w_std"]
-    h = (entry[5] - stats["h_mean"])*res_factor / stats["h_std"]
-    '''
-
-    # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
-    r = (entry[2])*res_factor / stats["r_std"]
-    c = (entry[3])*res_factor / stats["c_std"]
-    w = (entry[4])*res_factor / stats["w_std"]
-    h = (entry[5])*res_factor / stats["h_std"]
-   
-    target = [entry[1], r, c, w, h]    
-    return image, target
-
-def load_data(entries, stats):
-    '''
-    Given a list of entries from data (read from csv using read_datasets), loads the images into lists, and converts them to tensor
-    '''
-    images, targets = [], []
     
-    for entry in entries:
-        image, target = read_data(entry, stats)
-        images.append(image)
-        targets.append(target)
+def train(args, network, optimizer, loader):
 
-    input_tensor = torch.tensor(images, dtype=torch.float, device=device).permute(0, 3, 1, 2)
-    target_tensor = torch.tensor(targets, dtype=torch.float, device=device)
-    
-    return input_tensor, target_tensor
-    
-def train_model(input_tensor, target_tensor, network, optimizer, criterion):
-    '''
-    Train the model with one batch of images supplied as input tensors, and compute losses
-    input_tensor: 4D tensor containing the images
-    target_tensor: 
-    ...
-
-    '''
-    batch_size = target_tensor.size(0)
-    
-    optimizer.zero_grad()
-
-    #print(target_tensor)
-    
-    output = network(input_tensor)
-    loss = criterion(output, target_tensor)
-
-    loss.backward()
-    optimizer.step()
-
-    #print("Trained one iter.")
-    
-    return loss.item() / batch_size
-    
-def train_epochs(network, optimizer, args, stats):
     start = time.time()
-    batch_size = args.batch
     criterion = nn.SmoothL1Loss(size_average=False)
     
-    data = read_datasets(args.dataloc)
-    
-    for iter in range(1, args.epochs + 1):
-
-        epoch_data = random.sample(data, len(data))
+    for iter in range(1, args.epochs):
+        
         epoch_loss = 0
-        num_batches = len(data) // batch_size
-        
-        for i in range(num_batches):
-            input_tensor, target_tensor = load_data(epoch_data[i*batch_size:(i+1)*batch_size], stats)
-            loss = train_model(input_tensor, target_tensor, network, optimizer, criterion)
-            epoch_loss += loss
-        
+        for batch_idx, sample in enumerate(loader):
+            
+            images, targets = sample['image'].to(device), sample['targets'].to(device)
+            optimizer.zero_grad()
+
+            outputs = network(images)
+            loss = criterion(outputs, targets)
+
+            loss.backward()
+            optimizer.step()
+
+            epoch_loss += loss.item()
+            
         print('%s (%d %.2f%%) %.4f' % (timeSince(start, iter / args.epochs), iter, (iter / args.epochs)*100.0, epoch_loss))
 
         if iter % args.saverate == 0:
-            save_model(network, optimizer, iter, args)
+            save_model(network, optimizer, iter, args)        
 
-'''
-# Obsolete: No target scaling
-         
 def denormalize(output, stats):
     values = [output.data[0][i].item() for i in range(5)]
-    values[1] = int(values[1]*stats["r_std"] + stats["r_mean"])
-    values[2] = int(values[2]*stats["c_std"] + stats["c_mean"])
-    values[3] = int(values[3]*stats["w_std"] + stats["w_mean"])
-    values[4] = int(values[4]*stats["h_std"] + stats["h_mean"])
-
+    values[1] = int(values[1]*stats["r_std"])
+    values[2] = int(values[2]*stats["c_std"])
+    values[3] = int(values[3]*stats["w_std"])
+    values[4] = int(values[4]*stats["h_std"])
     return values
-
-'''
-
-def evaluate(network, image_path, stats):
-    with torch.no_grad():
-        entry = [image_path, 0, 0, 0, 0, 0]
-        input_tensor, _ =  load_data([entry], stats)
-        output = network(input_tensor)
-        #print(output.size())
-        bbox_output = [output.data[0][i].item() for i in range(output.size(1))]
-                       
-        return bbox_output
 
 def load_model(network, optimizer, model_name):
 
@@ -211,3 +126,80 @@ def timeSince(since, percent):
     es = s / (percent)
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
+
+def show_image(image, bbox, window="image"):
+    cv2.rectangle(image, (bbox[2], bbox[1]), (bbox[2] + bbox[3], bbox[1] + bbox[4]), (0, 255, 0), 2)
+    cv2.imshow(window, image)
+    cv2.waitKey(0)
+
+class Normalize(object):
+    def __init__(self, stats):
+        self.stats = stats
+
+    def __call__(self, sample):
+
+        image, targets = sample['image'], sample['targets']
+
+        norm_image = ( np.asarray(image, dtype=float) - np.asarray( self.stats["img_mean"], dtype=float).reshape(1, 1, 3) ) / np.asarray(self.stats["img_std"], dtype=float).reshape(1, 1, 3)
+
+        '''
+        # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
+        r = (entry[2] - stats["r_mean"])*res_factor / stats["r_std"]
+        c = (entry[3] - stats["c_mean"])*res_factor / stats["c_std"]
+        w = (entry[4] - stats["w_mean"])*res_factor / stats["w_std"]
+        h = (entry[5] - stats["h_mean"])*res_factor / stats["h_std"]
+        '''
+
+        # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
+        r = targets[1] / self.stats["r_std"]
+        c = targets[2] / self.stats["c_std"]
+        w = targets[3] / self.stats["w_std"]
+        h = targets[4] / self.stats["h_std"]
+        
+        return {'image':norm_image, 'targets':[targets[0], r, c, w, h]}
+
+class Scale(object):
+    def __init__(self, factor):
+        self.factor = factor
+
+    def __call__(self, sample):
+        image, targets = sample['image'], sample['targets']
+        
+        if self.factor > 1.0:
+            interpolation = cv2.INTER_CUBIC
+        else:
+            interpolation = cv2.INTER_AREA
+
+        image = cv2.resize(image, None, fx=self.factor, fy=self.factor, interpolation=interpolation)
+        r, c, w, h = [int(targets[i]*self.factor) for i in range(1, 5)]
+        targets = [targets[0], r, c, w, h]
+        
+        return {'image':image, 'targets':targets}
+
+class ToTensor(object):
+
+    def __call__(self, sample):
+        image, targets = sample['image'], sample['targets']
+        image = image.transpose((2, 0, 1))
+
+        return {'image': torch.tensor(image, dtype=torch.float), 'targets': torch.tensor(targets, dtype=torch.float)}
+    
+class DroneDataset(Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.drone_data = read_datasets(root_dir)
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.drone_data)
+
+    def __getitem__(self, idx):
+        image, targets = cv2.imread(self.root_dir + self.drone_data[idx][0], -1), self.drone_data[idx][1:]
+
+        sample = {'image': image, 'targets': targets}
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+
