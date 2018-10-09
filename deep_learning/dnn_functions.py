@@ -61,7 +61,7 @@ def train(args, network, optimizer, loader):
     start = time.time()
     criterion = nn.SmoothL1Loss(size_average=False)
     
-    for iter in range(1, args.epochs):
+    for iter in range(1, args.epochs+1):
         
         epoch_loss = 0
         for batch_idx, sample in enumerate(loader):
@@ -82,6 +82,19 @@ def train(args, network, optimizer, loader):
         if iter % args.saverate == 0:
             save_model(network, optimizer, iter, args)        
 
+def evaluate(network, loader):
+
+    with torch.no_grad():
+
+        for i, sample in enumerate(loader):
+            images, targets = sample['image'].to(device), sample['targets']
+            start = time.time()
+            outputs = network(images)
+            duration = time.time() - start
+            
+            for j in range(images.size()[0]):
+                print(duration, sample['targets'], outputs)
+            
 def denormalize(output, stats):
     values = [output.data[0][i].item() for i in range(5)]
     values[1] = int(values[1]*stats["r_std"])
@@ -90,11 +103,13 @@ def denormalize(output, stats):
     values[4] = int(values[4]*stats["h_std"])
     return values
 
-def load_model(network, optimizer, model_name):
+def load_model(model_name, network, optimizer=None):
 
     state = torch.load(model_name)
+
     network.load_state_dict(state['network_state'])
-    optimizer.load_state_dict(state['optimizer_state'])
+    if optimizer is not None:
+        optimizer.load_state_dict(state['optimizer_state'])
     state = None
     
     print("Model load successful")
@@ -176,6 +191,17 @@ class Scale(object):
         
         return {'image':image, 'targets':targets}
 
+class Squash(object):
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, sample):
+        image, targets = sample['image'], sample['targets']
+
+        res_im = cv2.resize(image, (224, 224))
+
+        return {'image': res_im, 'targets':targets}
+        
 class ToTensor(object):
 
     def __call__(self, sample):
