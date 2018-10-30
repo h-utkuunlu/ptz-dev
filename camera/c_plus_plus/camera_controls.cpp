@@ -1,5 +1,3 @@
-#include <opencv2/opencv.hpp>
-#include <boost/program_options.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/algorithm/hex.hpp>
