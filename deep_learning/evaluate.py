@@ -27,23 +27,22 @@ args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-stats = dnn.read_stats(args.dataloc + args.stats)
-dataset = dnn.DroneDataset(root_dir=args.dataloc, transform=transforms.Compose([ dnn.Scale(0.44444), dnn.Normalize(stats), dnn.Squash(224), dnn.ToTensor()]))
-loader = DataLoader(dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
+test_stats = dnn.read_stats(args.dataloc + "test/stats")
+test_dataset = dnn.DroneDataset(root_dir=args.dataloc + "test/", transform=transforms.Compose([ dnn.RandomCrop(224), dnn.Normalize(test_stats), dnn.ToTensor()]))
+test_loader = DataLoader(test_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
 # Pretrained
-network = models.resnet101(pretrained=True)
+network = models.resnet152(pretrained=True)
 for param in network.parameters():
     param.requires_grad = False
+
 num_ftrs = network.fc.in_features
-network.fc = nn.Linear(num_ftrs, 5)
+network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
 network = network.to(device)
 
-# Own
-#network = model.Net().to(device)
-
 print("Model created")
-dnn.load_model(args.open, network)
+#dnn.load_model(args.open, network)
 
 ## Start Evaluating
-dnn.evaluate(network, loader)
+acc = dnn.timed_evaluate(network, test_loader, gui=True)
+print("Overall accuracy:", acc)
