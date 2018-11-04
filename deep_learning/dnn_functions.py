@@ -13,25 +13,41 @@ from torch.utils.data import Dataset, DataLoader
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def read_bin_class_data(dir):
+
+    positive = []
+    negative = []
+
+    for file in os.listdir(dir + "positive/"):
+        if file.endswith(".jpg") or file.endswith(".jpeg") or file.endswith(".JPEG"):
+            positive.append(["positive/" + file, 1])
+        
+    for file in os.listdir(dir + "negative/"):
+        if file.endswith(".jpg") or file.endswith(".JPEG"):
+            negative.append(["negative/" + file, 0])
+    
+    return positive + negative
+        
 def read_stats(file):
     with open(file, 'r') as f:
         reader = csv.reader(f, delimiter=",")
         for raw_stats in reader:
             stats = {
                 "img_mean": [float(raw_stats[0]), float(raw_stats[1]), float(raw_stats[2])],
-                "img_std": [float(raw_stats[3]), float(raw_stats[4]), float(raw_stats[5])],
-                "r_mean": float(raw_stats[6]),
-                "r_std": float(raw_stats[7]),
-                "c_mean": float(raw_stats[8]),
-                "c_std": float(raw_stats[9]),
-                "w_mean": float(raw_stats[10]),
-                "w_std": float(raw_stats[11]),
-                "h_mean": float(raw_stats[12]),
-                "h_std": float(raw_stats[13])
+                "img_std": [float(raw_stats[3]), float(raw_stats[4]), float(raw_stats[5])]
             }
-
+            '''
+            # Obsolete: No box regression
+            "r_mean": float(raw_stats[6]),
+            "r_std": float(raw_stats[7]),
+            "c_mean": float(raw_stats[8]),
+            "c_std": float(raw_stats[9]),
+            "w_mean": float(raw_stats[10]),
+            "w_std": float(raw_stats[11]),
+            "h_mean": float(raw_stats[12]),
+            "h_std": float(raw_stats[13])
+            '''
     return stats
-
 
 def read_datasets(dir):
     '''
@@ -56,10 +72,29 @@ def read_dataset(csv_file):
 
     return data
     
+def train_epoch(network, criterion, optimizer, loader):
+
+    epoch_loss = 0
+    for batch_idx, sample in enumerate(loader):
+            
+        images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
+        optimizer.zero_grad()
+
+        outputs = network(images)
+        loss = criterion(outputs, targets)
+
+        loss.backward()
+        optimizer.step()
+
+        epoch_loss += loss.item()
+
+    return epoch_loss
+
 def train(args, network, optimizer, loader):
 
     start = time.time()
-    criterion = nn.SmoothL1Loss(size_average=False)
+    criterion = nn.BCELoss(size_average=False)
+    network.train()
     
     for iter in range(1, args.epochs+1):
         
@@ -84,16 +119,33 @@ def train(args, network, optimizer, loader):
 
 def evaluate(network, loader):
 
+    total = 0
+    correct = 0
+    actual_drones = 0
+    predicted_drones = 0
+    true_pos = 0
+    
     with torch.no_grad():
-
+        network.eval()
+        
         for i, sample in enumerate(loader):
-            images, targets = sample['image'].to(device), sample['targets']
-            start = time.time()
+            images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
+
+            threshold = torch.Tensor([0.5]).to(device)
             outputs = network(images)
-            duration = time.time() - start
-            
-            for j in range(images.size()[0]):
-                print(duration, sample['targets'], outputs)
+            predictions = outputs > threshold
+
+            total += targets.size(0)
+            correct += (predictions == targets.byte()).sum().item()
+            actual_drones += targets.sum().item() # for recall
+            predicted_drones += predictions.sum().item()
+            true_pos += (predictions & targets.byte()).sum().item()
+
+    accuracy = 100.0 * (correct / total)
+    precision = 100.0 * (true_pos / predicted_drones)
+    recall = 100.0 * (true_pos / actual_drones)
+
+    return {'accuracy': accuracy, 'precision': precision, 'recall': recall}
             
 def denormalize(output, stats):
     values = [output.data[0][i].item() for i in range(5)]
@@ -120,7 +172,7 @@ def save_model(network, optimizer, epochs, args):
         'learning_rate:': args.lr,
         'network_state': network.state_dict(),
         'optimizer_state': optimizer.state_dict(),
-        'base': args.open
+       'base': args.open
     }
 
     file_name = args.basename + "_" + str(epochs) + ".pkl"
@@ -163,15 +215,15 @@ class Normalize(object):
         c = (entry[3] - stats["c_mean"])*res_factor / stats["c_std"]
         w = (entry[4] - stats["w_mean"])*res_factor / stats["w_std"]
         h = (entry[5] - stats["h_mean"])*res_factor / stats["h_std"]
-        '''
-
-        # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
+        
+        # Obsoleted: Classification problem instead of regression
         r = targets[1] / self.stats["r_std"]
         c = targets[2] / self.stats["c_std"]
         w = targets[3] / self.stats["w_std"]
         h = targets[4] / self.stats["h_std"]
+        '''
         
-        return {'image':norm_image, 'targets':[targets[0], r, c, w, h]}
+        return {'image': norm_image, 'targets': targets}
 
 class Scale(object):
     def __init__(self, factor):
@@ -191,6 +243,7 @@ class Scale(object):
         
         return {'image':image, 'targets':targets}
 
+# Obsolete: Eliminated squashing
 class Squash(object):
     def __init__(self, size):
         self.size = size
@@ -201,7 +254,82 @@ class Squash(object):
         res_im = cv2.resize(image, (224, 224))
 
         return {'image': res_im, 'targets':targets}
+
+class RandomCrop(object):
+    def __init__(self, size):
+        self.size = (size, size)
+
+    def __call__(self, sample):
+        image, targets = sample['image'], sample['targets']
+        h, w = image.shape[:2]
+        new_h, new_w = self.size
+
+        top = np.random.randint(0, h - new_h)
+        left = np.random.randint(0, w - new_w)
+
+        image = image[top:top+new_h, left:left+new_h]
+
+        return {'image': image, 'targets':targets}
         
+class Corrupt(object):
+    def __init__(self, prob):
+        self.prob = prob
+
+    def __call__(self, sample):
+        image, targets = sample['image'], sample['targets']
+        if np.random.random() > self.prob:
+            return {'image': image, 'targets': targets}
+
+        else:
+            corruptions = ["agbn", "blur", "occlusion"] # agbn: additive gaussian + bias
+            chosen = random.choice(corruptions)
+            if chosen == "agbn":
+                image = self.gaussianNoise(self.biasNoise(image))
+            elif chosen == "blur":
+                image = self.blur(image)
+            elif chosen == "occlusion":
+                image = self.occlude(image)
+
+            return {'image': image, 'targets': targets}
+            
+    @staticmethod
+    def gaussianNoise(image):
+        row, col, ch = image.shape
+        mean = 0
+        var = 0.0025
+        sigma = var**0.5
+        gauss = np.random.normal(mean, sigma, (row, col))*255
+        gauss = np.repeat(gauss.reshape(row, col, 1), 3, axis=2)
+        noisy = np.clip(image.astype(np.int32) + gauss.astype(np.int32), 0, 255).astype(np.uint8)
+        
+        return noisy
+
+    @staticmethod
+    def biasNoise(image):
+        row, col, ch = image.shape
+        val = (random.random()-0.5)*(int(np.amax(image)) + int(np.amin(image)))*0.25
+        mask = np.ones((row, col, ch), dtype=np.float64)*val
+        noisy = np.clip(image.astype(np.int32) + mask.astype(np.int32), 0, 255).astype(np.uint8)
+    
+        return noisy
+
+    @staticmethod
+    def blur(image):
+        return cv2.GaussianBlur(image, (27, 27), 0)
+
+    @staticmethod
+    def occlude(image):
+        row, col, ch = image.shape
+        w = col // 3
+        h = row // 3
+        occlusion = np.zeros((h, w, ch))
+        y = np.random.randint(0, high=(row - h + 1))
+        x = np.random.randint(0, high=(col - w + 1))
+        occluded = image.copy()
+        occluded[y:y+h, x:x+w] = occlusion
+
+        return occluded             
+    
 class ToTensor(object):
 
     def __call__(self, sample):
@@ -213,14 +341,15 @@ class ToTensor(object):
 class DroneDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
-        self.drone_data = read_datasets(root_dir)
+        self.drone_data = read_bin_class_data(root_dir)
         self.transform = transform
 
     def __len__(self):
         return len(self.drone_data)
 
     def __getitem__(self, idx):
-        image, targets = cv2.imread(self.root_dir + self.drone_data[idx][0], -1), self.drone_data[idx][1:]
+        #print(self.root_dir + self.drone_data[idx][0])
+        image, targets = cv2.imread(self.root_dir + self.drone_data[idx][0], -1), self.drone_data[idx][1]
 
         sample = {'image': image, 'targets': targets}
 
