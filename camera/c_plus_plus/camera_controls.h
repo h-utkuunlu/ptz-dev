@@ -1,5 +1,5 @@
-#ifndef CAMERA_CONTROLS
-#define CAMERA_CONTROLS
+#ifndef CAMERA_CONTROLS_H
+#define CAMERA_CONTROLS_H
 
 #include <opencv2/opencv.hpp>
 #include <boost/asio.hpp>
