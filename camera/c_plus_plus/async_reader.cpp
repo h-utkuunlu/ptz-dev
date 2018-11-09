@@ -2,9 +2,11 @@
 #include <thread>
 #include <mutex>
 #include <unistd.h>
+#include <chrono>
 
 
 using namespace cv;
+using namespace std::chrono;
 
 class CameraReaderAsync {
 private:
@@ -100,21 +102,31 @@ int main(int argc, char const *argv[]) {
     const int width = 1280;
     const int height = 720;
     std::cout << "Connecting..." << '\n';
-    Camera cam(1, width, height);
+    Camera cam(0, width, height);
     std::cout << "Connected to Camera" << '\n';
+    namedWindow("Gray Image", WINDOW_AUTOSIZE );
+    Mat frame;
+    milliseconds start;
+    milliseconds end;
+    milliseconds dur;
+    start = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
     while (true) {
-        Mat frame;
-        std::cout << "Reading frame" << '\n';
         frame = cam.read();
-        std::cout << "Finished reading frame" << '\n';
-        namedWindow("Gray Image", WINDOW_AUTOSIZE );
-        std::cout << "Displaying..." << '\n';
         if (!frame.empty()) {
             imshow("Gray Image", frame);
+            end = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+            dur = end - start;
+            double fps = 1/(double)
+            std::cout << dur.count() << '\n';
+            start = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+
         }
-        std::cout << "Finished Displaying" << '\n';
+
+
         char key = waitKey(1);
         if (key == 'q') { break; }
+
+        // std::cout << "FPS ------- " << 1.0/(double)dur << '\n';
     }
     std::cout << "Closing..." << '\n';
     cam.stop();
