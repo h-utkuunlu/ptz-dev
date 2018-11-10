@@ -21,6 +21,10 @@ namespace Capstone {
     bool UDPCamera::command(const std::string& commStr) {
         std::vector<uint8_t> comm;
         boost::algorithm::unhex(commStr.begin(), commStr.end(), std::back_inserter(comm));
+        // std::cout << "-----------------Sending the following -----------------" << '\n';
+        // std::cout << commStr << '\n';
+        // std::cout << std::endl;
+        // std::cout << "=====================Done===========================" << '\n';
         try {
     		socket.send_to(boost::asio::buffer(comm), receiver_endpoint);
             return true;
@@ -45,7 +49,11 @@ namespace Capstone {
         socket.close();
     }
 
-    bool PTZOptics20x::move(std::string& comm, const int pan, const int tilt) {
+    bool PTZOptics20x::move(std::string& comm, const size_t pan, const size_t tilt) {
+        //
+        // std::cout << "pan: " << pan << '\n';
+        // std::cout << "tilt: " << tilt << '\n';
+
         std::stringstream stream;
         stream << std::hex << pan;
         std::string h1( stream.str() );
@@ -57,7 +65,10 @@ namespace Capstone {
         if (h1.length() < 2) { h1.insert(0, "0"); }
         if (h2.length() < 2) { h2.insert(0, "0"); }
         ptContinuousMotion = true;
-        return command(comm.replace(8, 2, h1).replace(10, 2, h2));
+        // std::cout << comm << '\n';
+        comm.replace(8, 2, h1).replace(10, 2, h2);
+        // std::cout << comm << '\n';
+        return command(comm);
     }
 
     void PTZOptics20x::formatCommand(std::string& comm, const int pan,const int tilt, const size_t speed) {
@@ -217,7 +228,7 @@ namespace Capstone {
             hex_string = "0" + hex_string;
         }
         std::string comm = "81010601VVWW0103FF";
-        comm.replace(8, 2, hex_string).replace(10, 2, "15");
+        comm.replace(8, 2, hex_string).replace(10, 2, "10");
         ptContinuousMotion = true;
         return command(comm);
     }
@@ -230,7 +241,7 @@ namespace Capstone {
             hex_string = "0" + hex_string;
         }
         std::string comm = "81010601VVWW0203FF";
-        comm.replace(8, 2, hex_string).replace(10, 2, "15");
+        comm.replace(8, 2, hex_string).replace(10, 2, "10");
         ptContinuousMotion = true;
         return command(comm);
     }
@@ -243,7 +254,7 @@ namespace Capstone {
             hex_string = "0" + hex_string;
         }
         std::string comm = "81010601VVWW0301FF";
-        comm.replace(8, 2, hex_string).replace(10, 2, "15");
+        comm.replace(8, 2, "10").replace(10, 2, hex_string);
         ptContinuousMotion = true;
         return command(comm);
     }
@@ -256,27 +267,27 @@ namespace Capstone {
             hex_string = "0" + hex_string;
         }
         std::string comm = "81010601VVWW0302FF";
-        comm.replace(8, 2, hex_string).replace(10, 2, "15");
+        comm.replace(8, 2, "10").replace(10, 2, hex_string);
         ptContinuousMotion = true;
         return command(comm);
     }
 
-    bool PTZOptics20x::leftUp(const int pan, const int tilt) {
+    bool PTZOptics20x::leftUp(const size_t pan, const size_t tilt) {
         std::string comm = "81010601VVWW0101FF";
         return move(comm, pan, tilt);
     }
 
-    bool PTZOptics20x::rightUp(const int pan, const int tilt) {
+    bool PTZOptics20x::rightUp(const size_t pan, const size_t tilt) {
         std::string comm = "81010601VVWW0201FF";
         return move(comm, pan, tilt);
     }
 
-    bool PTZOptics20x::leftDown(const int pan, const int tilt) {
+    bool PTZOptics20x::leftDown(const size_t pan, const size_t tilt) {
         std::string comm = "81010601VVWW0102FF";
         return move(comm, pan, tilt);
     }
 
-    bool PTZOptics20x::rightDown(const int pan, const int tilt) {
+    bool PTZOptics20x::rightDown(const size_t pan, const size_t tilt) {
         std::string comm = "81010601VVWW0202FF";
         return move(comm, pan, tilt);
     }

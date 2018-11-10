@@ -14,10 +14,11 @@ int main(int argc, char* argv[]) {
     std::string comm = "81010604FF";
     myCam.command(comm);
     usleep(2000000);
-    myCam.right(24);
+    myCam.rightDown(9, 9);
     usleep(1000000);
-    myCam.left(25);
+    myCam.leftUp(9, 9);
     usleep(2000000);
     myCam.command(comm);
+
 
 }

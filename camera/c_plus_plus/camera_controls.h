@@ -10,7 +10,6 @@
 #include <string>
 #include <exception>
 #include <sstream>
-#include <unistd.h>
 
 namespace Capstone {
     class UDPCamera {
@@ -62,7 +61,7 @@ namespace Capstone {
         bool ptContinuousMotion = false;
         bool zContinuous = false;
 
-        bool move(std::string& comm, const int pan, const int tilt);
+        bool move(std::string& comm, const size_t pan, const size_t tilt);
 
         void formatCommand(std::string& comm, const int pan,const int tilt, const size_t speed);
 
@@ -201,13 +200,13 @@ namespace Capstone {
         */
         bool down(const size_t amount=5);
 
-        bool leftUp(const int pan, const int tilt);
+        bool leftUp(const size_t pan, const size_t tilt);
 
-        bool rightUp(const int pan, const int tilt);
+        bool rightUp(const size_t pan, const size_t tilt);
 
-        bool leftDown(const int pan, const int tilt);
+        bool leftDown(const size_t pan, const size_t tilt);
 
-        bool rightDown(const int pan, const int tilt);
+        bool rightDown(const size_t pan, const size_t tilt);
     };
 }
 
