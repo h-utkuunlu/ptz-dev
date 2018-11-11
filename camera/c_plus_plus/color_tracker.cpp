@@ -178,7 +178,7 @@ control(const std::tuple<float, float>& errors, PIDController& panPID, PIDContro
     // std::cout << "Tilt Speed: " << tilt_speed << '\n';
 
     if ((pan_speed == 0) and (tilt_speed == 0)) {
-        ptz.leftUp(1, 1);
+        ptz.stop();
         usleep(dur);
     } else if (pan_speed == 0) {
         if (tilt_command == abs(tilt_command)) {
