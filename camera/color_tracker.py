@@ -3,6 +3,7 @@ import imutils
 from time import sleep, time
 from camera_controls import PTZOptics20x
 from async_reader import Camera
+from controller import PIDController, control, limit
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -149,8 +150,8 @@ if gui_mode:
     cv2.namedWindow("cam")
     cv2.moveWindow("cam", 20, 20)
 
-pan_pid = PIDController(1.4, 0.1, 0, 1/50, 2*3.14*10)
-tilt_pid = PIDController(1.4, 0.1, 0, 1/50, 2*3.14*10)
+pan_pid = PIDController(1.4, 0.1, 0.0, 1/50, 2*3.14*10)
+tilt_pid = PIDController(1.4, 0.1, 0.0, 1/50, 2*3.14*10)
 
 start_time = time()
 
