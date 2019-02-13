@@ -170,8 +170,8 @@ class PTZOptics20x(TCPCamera):
             for x in range(1, 9, 2):
                 r += msg[x]
             x = int(r, 16)
-            return x
-        return -1
+            return x, True
+        return -1, False
 
     def get_pan_tilt_position(self):
         """Retrieves current pan/tilt position.
@@ -186,7 +186,6 @@ class PTZOptics20x(TCPCamera):
         self.comm('81090612FF', 'tcp')
         msg = self.read()[4:-2]
         r = ""
-        #~ print "pan tilt msg: " + msg
         if len(msg) == 16:
             for x in range(1, 9, 2):
                 r += msg[x]
@@ -325,11 +324,26 @@ class PTZOptics20x(TCPCamera):
         :return: True on success, False on failure
         :rtype: bool
         """
-        if -1 < speed > 7:
+        if speed < 0 or speed > 7:
             return False
         s = '810104072pFF'.replace(
             'p', "{0:1s}".format(str(speed)))
-        print("zoomin comm string: " + s)
+        # print("zoomin comm string: " + s)
+        self._zContinuous = True
+        return self.comm(s, 'udp')
+
+    def zoomout(self, speed=0):
+        """Initiate tele zoom at speed range 0-7
+
+        :param speed: zoom speed, 0-7
+        :return: True on success, False on failure
+        :rtype: bool
+        """
+        if speed < 0 or speed > 7:
+            return False
+        s = '810104073pFF'.replace(
+            'p', "{0:1s}".format(str(speed)))
+        # print("zoomout comm string: " + s)
         self._zContinuous = True
         return self.comm(s, 'udp')
 

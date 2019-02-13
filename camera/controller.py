@@ -91,5 +91,8 @@ def control(errors, pan_pid, tilt_pid, ptz):
 
     return pan_speed, tilt_speed
 
+def errors_pt(center, width, height):
+    return ((width//2 - center[0])/50, (height//2 - center[1])/30) # Pos. pan error: right. Pos. tilt error: down
+
 def limit(val, max):
     return max if abs(val) > max else abs(int(val))

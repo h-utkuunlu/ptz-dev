@@ -3,7 +3,7 @@ import imutils
 from time import sleep, time
 from camera_controls import PTZOptics20x
 from async_reader import Camera
-from controller import PIDController, control, limit
+from controller import PIDController, control, limit, errors_pt
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -39,103 +39,29 @@ def find_object(frame):
         if radius > 10:
             return [center, x, y, radius]
 
-class PIDController:
-    def __init__(self, kp, kd, ki, T, omega_c):
-        self.past = {
-            "err": 0.0,
-            "diff": 0.0,
-            "filt": 0.0,
-            "integ": 0.0
-        }
-        self.kp = kp
-        self.kd = kd
-        self.ki = ki
-        self.T = T
-        self.omega_c = omega_c
-
-        self.minval = -24
-        self.maxval = 24
-
-    # Controls equations - bilinear approximation
-    @staticmethod
-    def _df_bil(diff_1, err, err_1, T):
-        return -diff_1 + (err - err_1) * (2 / T)
-    @staticmethod
-    def _filt_bil(filt_1, diff, diff_1, T, omega_c):
-        return ((2 - T*omega_c)/(2 + T*omega_c))*filt_1 + T*omega_c*(diff + diff_1)/(2+T*omega_c)
-    @staticmethod
-    def _integ_bil(integ_1, err, err_1, T):
-        return integ_1 + (err + err_1)*(T/2)
-
-    def compute(self, err):
-        diff = self._df_bil(self.past["diff"], err, self.past["err"], self.T)
-        filt = self._filt_bil(self.past["filt"], diff, self.past["diff"], self.T, self.omega_c)
-        integ = self._integ_bil(self.past["integ"], err, self.past["err"], self.T)
-
-        pid_out = self.kp*err + self.kd*filt + self.ki*integ
-
-        self.past["err"] = err
-        self.past["diff"] = diff
-        self.past["filt"] = filt
-
-        if (pid_out > self.minval and pid_out < self.maxval):
-            self.past["integ"] = integ
-
-        return pid_out
-
-def control(errors, pan_pid, tilt_pid, ptz):
+def control_zoom(error, zoom_pid, ptz):
 
     dur = 0.001
 
-    pan_command = pan_pid.compute(errors[0]) # positive means turn left
-    tilt_command = tilt_pid.compute(errors[1]) # positive means move up
+    zoom_command = zoom_pid.compute(error) # positive means zoom in
+    zoom_speed = limit(zoom_command, 1)
 
-    pan_speed = limit(pan_command, 24)
-    tilt_speed = limit(tilt_command, 18)
-
-    if pan_speed == 0 and tilt_speed == 0:
-        ptz.stop()
+    if not zoom_speed:
+        ptz.zoomstop()
         sleep(dur)
 
-    elif pan_speed == 0:
-        if tilt_command == abs(tilt_command):
-            ptz.up(tilt_speed)
-            sleep(dur)
-        else:
-            ptz.down(tilt_speed)
-            sleep(dur)
-    elif tilt_speed == 0:
-        if pan_command == abs(pan_command):
-            ptz.left(pan_speed)
-            sleep(dur)
-        else:
-            ptz.right(pan_speed)
-            sleep(dur)
-
-    elif abs(pan_command) == pan_command and abs(tilt_command) == tilt_command:
-        ptz.left_up(pan_speed, tilt_speed)
+    if zoom_command > 0:
+        ptz.zoomin(zoom_speed)
+        sleep(dur)
+    elif zoom_command < 0:
+        ptz.zoomout(zoom_speed)
         sleep(dur)
 
-    elif abs(pan_command) == pan_command and abs(tilt_command) != tilt_command:
-        ptz.left_down(pan_speed, tilt_speed)
-        sleep(dur)
+    return zoom_speed
 
-    elif abs(pan_command) != pan_command and abs(tilt_command) == tilt_command:
-        ptz.right_up(pan_speed, tilt_speed)
-        sleep(dur)
-
-    elif abs(pan_command) != pan_command and abs(tilt_command) != tilt_command:
-        ptz.right_down(pan_speed, tilt_speed)
-        sleep(dur)
-
-    return pan_speed, tilt_speed
-
-def limit(val, max):
-    retval = max if abs(val) > max else abs(int(val))
-    return retval
-
-def errors(center, width, height):
-    return ((width//2 - center[0])/50, (height//2 - center[1])/30) # Pos. pan error: right. Pos. tilt error: down
+def error_zoom(size, height):
+    target_size = float(height)/3.0  # no specific reason for 3
+    return (target_size - size)/30  # no specific reason for 30
 
 gui_mode = args.gui
 
@@ -150,8 +76,9 @@ if gui_mode:
     cv2.namedWindow("cam")
     cv2.moveWindow("cam", 20, 20)
 
-pan_pid = PIDController(1.4, 0.1, 0.0, 1/50, 2*3.14*10)
-tilt_pid = PIDController(1.4, 0.1, 0.0, 1/50, 2*3.14*10)
+pan_pid = PIDController(1.2, 0.1, 0.1, 1/50, 2*3.14*10)
+tilt_pid = PIDController(1.2, 0.1, 0.1, 1/50, 2*3.14*10)
+zoom_pid = PIDController(1.2, 0.1, 0.1, 1/50, 2*3.14*10)
 
 start_time = time()
 
@@ -186,9 +113,12 @@ while True:
         if key == ord('q'):
             break
 
-    speeds = control(errors(center, width, height), pan_pid, tilt_pid, ptz)
+    pan_tilt_error = errors_pt(center, width, height)
+    zoom_error = error_zoom(2*radius, height)
+    control(pan_tilt_error, pan_pid, tilt_pid, ptz)
+    control_zoom(zoom_error, zoom_pid, ptz)
 
-    print(int(1/ (time() - start_time)))
+    print("Frame Rate:", int(1/ (time() - start_time)))
 
     start_time = time()
     counter += 1
