@@ -60,8 +60,11 @@ class Flow(object):
         self.timer_expir = True # bool for if timer expired
         self.obj_detected = False # bool for if object detected
         self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
-        #self.camera = 'source'
-        
+        self.camera = None
+        self.bg_model = None
+        self.cur_imgs = None
+        self.cur_bboxes = None
+        self.drone_bboxes = None
         
     def expiry(self):
         self.timer_expir = True
