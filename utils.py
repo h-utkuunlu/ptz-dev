@@ -356,8 +356,8 @@ class PTZOptics20x(TCPCamera):
 
     def get_pan_tilt_position(self):
         """Retrieves current pan/tilt position.
-        Pan is 0 at home. Right is positive, max 2448. Left ranges from full left 63088 to 65555 before home.
-        Tilt is 0 at home. Up is positive, max 1296. Down ranges from fully depressed at 65104 to 65555 before home.
+        Pan is 0 at home. Right is positive, max 2448. Left ranges from full left 63088 to 65535 before home.
+        Tilt is 0 at home. Up is positive, max 1296. Down ranges from fully depressed at 65104 to 65535 before home.
 
         :return: pan position
         :rtype: int

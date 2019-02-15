@@ -40,8 +40,7 @@ from state_search import in_search_fn, out_search_fn
 from state_detect import in_detect_fn, out_detect_fn
 from state_id import in_id_fn, out_id_fn
 from state_track import in_track_fn, out_track_fn
-
-
+from utils import *
 
 class Flow(object):
     states=[
@@ -63,11 +62,11 @@ class Flow(object):
         self.timer_expir = True # bool for if timer expired
         self.obj_detected = False # bool for if object detected
         self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
-        self.camera = None
+        self.camera = Camera(PIDController(),PIDController(),PIDController())
         self.bg_model = None
         self.cur_imgs = None
         self.cur_bboxes = None
-        self.drone_bboxes = None
+        self.drone_bbox = None
         
     def expiry(self):
         self.timer_expir = True
