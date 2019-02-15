@@ -1,75 +1,98 @@
 #! /usr/bin/env python3
+ 
+
+'''
+Finite state machine for ptz aerial tracking
+
+ /''''''''''''''''''\
+|       search       | <--------------.
+ \__________________/                 |
+   /|\          |                     |
+    |timeout    |in_pos               |
+    |          \|/                    |
+ /''''''''''''''''''\                 |
+|       detect       |                |
+ \__________________/                 |
+   /|\          |                     |
+    |not_drone  |found_obj            |
+    |          \|/                    |
+ /''''''''''''''''''\                 |
+|         id         |                |
+ \__________________/                 |
+          |                           |
+          |drone                      |
+         \|/                          |
+ /''''''''''''''''''\  lost_track     |
+|       track        |----------------'
+ \__________________/
+        
+
+pip install transitions
+'''
+
 
 import time
 import random
+from state_search import in_search_fn, out_search_fn
+from state_detect import in_detect_fn, out_detect_fn
+from state_id import in_id_fn, out_id_fn
+from state_track import in_track_fn, out_track_fn
 from transitions import Machine, State
 from threading import Timer
 
 class Flow(object):
-	states=[
-		State('obj_det'),
-		State('search'),# on_exit=['on_exit_search']),
-		State('obj_id'),
-		State('obj_track')
-	]
-	transitions = [
-	{ 'trigger': 'timeout', 'source': 'obj_det', 'dest': 'search' },
-	{ 'trigger': 'found_obj', 'source': 'obj_det', 'dest': 'obj_id' },
-	{ 'trigger': 'in_pos', 'source': 'search', 'dest': 'obj_det' },
-	{ 'trigger': 'drone', 'source': 'obj_id', 'dest': 'obj_track' },
-	{ 'trigger': 'not_drone', 'source': 'obj_id', 'dest': 'obj_det' },
-	{ 'trigger': 'lost_track', 'source': 'obj_track', 'dest': 'search' }
-]
-	
-	def __init__(self):
-		self.timer_expir = True # bool for if timer expired
-		self.obj_detected = False # bool for if object detected
-		self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
-
-	def expiry(self):
-		self.timer_expir = True
+    states=[
+        State('search'),
+        State('detect'),
+        State('id'),
+        State('track')
+    ]
+    transitions = [
+    { 'trigger': 'in_pos', 'source': 'search', 'dest': 'detect' },
+    { 'trigger': 'timeout', 'source': 'detect', 'dest': 'search' },
+    { 'trigger': 'found_obj', 'source': 'detect', 'dest': 'id' },
+    { 'trigger': 'drone', 'source': 'id', 'dest': 'track' },
+    { 'trigger': 'not_drone', 'source': 'id', 'dest': 'detect' },
+    { 'trigger': 'lost_track', 'source': 'track', 'dest': 'search' }
+    ]
+    
+    def __init__(self):
+        self.timer_expir = True # bool for if timer expired
+        self.obj_detected = False # bool for if object detected
+        self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
+        #self.camera = 'source'
+        
+        
+    def expiry(self):
+        self.timer_expir = True
 
 ###########################################################
-		
-	def on_enter_search(self):
-		print('searching')
-		time.sleep(1)
-		self.in_pos()
-		
-	def on_exit_search(self):
-		print('bg initialized')
-		self.timer_expir = False
-		Timer(5, self.expiry, ()).start()
+        
+    def on_enter_search(self):
+        in_search_fn(self)        
+        
+    def on_exit_search(self):
+        out_search_fn(self)
+        
+    def on_enter_detect(self):
+        in_detect_fn(self)
 
-	def on_enter_obj_det(self):
-		local_timer = time.time()
-		while not self.timer_expir:
-			if time.time()-local_timer>3:
-				self.found_obj()
-			print('detecting objects')
-			time.sleep(1)
-			
-		self.timeout()
+    def on_exit_detect(self):
+        out_detect_fn(self)
 
-	def on_exit_obj_det(self):
-		pass
+    def on_enter_id(self):
+        in_id_fn(self)
+        
+    def on_exit_id(self):
+        out_id_fn(self)
 
-	def on_enter_obj_id(self):
-		print('id-ing object')
-		time.sleep(1)
-		if random.random() > 0.5:
-			print('not drone :(')
-			self.not_drone()
-		else:
-			print('drone !')
-			self.drone()
+    def on_enter_track(self):
+        in_track_fn(self)
+        
+    def on_exit_track(self):
+        out_track_fn(self)
 
-	def on_exit_obj_id(self):
-		pass
-
-	def on_enter_obj_track(self):
-		print('tracking')
-		time.sleep(5)
-		self.lost_track()
+ 
 flow=Flow()
 
+flow.in_pos()
