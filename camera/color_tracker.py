@@ -65,8 +65,7 @@ def error_zoom(size, height):
 
 gui_mode = args.gui
 
-ptz = PTZOptics20x(args.host, args.port)
-ptz.init()
+ptz = PTZOptics20x(args.host, args.port).init()
 
 width = 1280
 height = 720
