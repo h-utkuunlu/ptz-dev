@@ -67,6 +67,10 @@ class Flow(object):
         self.cur_imgs = None
         self.cur_bboxes = None
         self.drone_bbox = None
+        self.tracker = cv2.TrackerKCF_create()
+        self.timeout_interval = 5
+        self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
+        
         
     def expiry(self):
         self.timer_expir = True
@@ -80,7 +84,9 @@ class Flow(object):
         out_search_fn(self)
         
     def on_enter_detect(self):
-        in_detect_fn(self)
+        #in_detect_fn(self)
+        print("detecting")
+        self.found_obj()
 
     def on_exit_detect(self):
         out_detect_fn(self)
