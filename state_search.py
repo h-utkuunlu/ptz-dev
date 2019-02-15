@@ -19,9 +19,12 @@ def in_search_fn(parent):
     parent.in_pos()
 
 def out_search_fn(parent):
-    parent.bg = None # bg.generate()
-    parent.cur_imgs = None
-    parent.cur_bboxes = None
+    pxcnt=20
+    parent.bg_model = cv2.bgsegm.createBackgroundSubtractorCNT(minPixelStability=pxcnt)
+    init_count=0
+    while init_count < pxcnt:
+        _ = parent.bg_model.apply(frame)
+        init_count += 1
     parent.timer_expir = False
     parent.timer_obj = Timer(parent.timeout_interval, parent.expiry, ())
     parent.timer_obj.start()
