@@ -1,9 +1,7 @@
 import cv2
 import imutils
 from time import sleep, time
-from camera_controls import PTZOptics20x
-from async_reader import Camera
-from controller import PIDController, control, limit, errors_pt
+from camera import Camera
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -39,45 +37,22 @@ def find_object(frame):
         if radius > 10:
             return [center, x, y, radius]
 
-def control_zoom(error, zoom_pid, ptz):
-
-    dur = 0.001
-
-    zoom_command = zoom_pid.compute(error) # positive means zoom in
-    zoom_speed = limit(zoom_command, 1)
-
-    if not zoom_speed:
-        ptz.zoomstop()
-        sleep(dur)
-
-    if zoom_command > 0:
-        ptz.zoomin(zoom_speed)
-        sleep(dur)
-    elif zoom_command < 0:
-        ptz.zoomout(zoom_speed)
-        sleep(dur)
-
-    return zoom_speed
-
-def error_zoom(size, height):
-    target_size = float(height)/3.0  # no specific reason for 3
-    return (target_size - size)/30  # no specific reason for 30
-
-gui_mode = args.gui
-
-ptz = PTZOptics20x(args.host, args.port).init()
-
-width = 1280
-height = 720
-source = Camera(args.dev, width, height)
-
-if gui_mode:
-    cv2.namedWindow("cam")
-    cv2.moveWindow("cam", 20, 20)
-
 pan_pid = PIDController(1.2, 0.1, 0.1, 1/50, 2*3.14*10)
 tilt_pid = PIDController(1.2, 0.1, 0.1, 1/50, 2*3.14*10)
 zoom_pid = PIDController(1.2, 0.1, 0.1, 1/50, 2*3.14*10)
+
+camera = Camera(usbdevnum=0,
+                width=1280,
+                height=720,
+                host=args.host,
+                pan_controller=pan_pid,
+                tilt_controller=tilt_pid,
+                zoom_controller=zoom_pid)
+
+if args.gui:
+    cv2.namedWindow("cam")
+    cv2.moveWindow("cam", 20, 20)
+
 
 start_time = time()
 
@@ -85,8 +60,7 @@ counter = 0
 count_limit = args.count
 
 while True:
-    frame = None
-    frame = source.cvreader.Read()
+    frame = camera.cvreader.Read()
 
     if frame is None:
         continue
@@ -112,10 +86,10 @@ while True:
         if key == ord('q'):
             break
 
-    pan_tilt_error = errors_pt(center, width, height)
-    zoom_error = error_zoom(2*radius, height)
-    control(pan_tilt_error, pan_pid, tilt_pid, ptz)
-    control_zoom(zoom_error, zoom_pid, ptz)
+    pan_error, tilt_error = camera.errors_pt(center, width, height)
+    zoom_error = camera.error_zoom(2*radius, height)
+    camera.control(pan_error=pan_error, tilt_error=tilt_error)
+    camera.control_zoom(zoom_error)
 
     print("Frame Rate:", int(1/ (time() - start_time)))
 
@@ -125,12 +99,10 @@ while True:
     if not gui_mode and counter > count_limit:
         break
 
-source.cvreader.Stop()
-source.cvcamera.release()
+camera.stop()
 
 if gui_mode:
     cv2.destroyAllWindows()
 
-ptz.stop()
 sleep(1)
 print("Program complete. Exiting..")
