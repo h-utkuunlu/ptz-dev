@@ -1,7 +1,7 @@
 import cv2
 import imutils
 from time import sleep, time
-from camera import Camera
+from camera import Camera, PIDController
 import argparse
 
 parser = argparse.ArgumentParser()

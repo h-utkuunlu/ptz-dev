@@ -30,15 +30,15 @@ class Camera:
     def stop(self):
         self.cvreader.Stop()
         self.cvcamera.release()
-        ptz.stop()
+        self.ptz.stop()
 
     @staticmethod
     def control(pan_error, tilt_error):
 
         dur = 0.001
 
-        pan_command = pan_controller.compute(pan_error) # positive means turn left
-        tilt_command = tilt_controller.compute(tilt_error) # positive means move up
+        pan_command = self.pan_controller.compute(pan_error) # positive means turn left
+        tilt_command = self.tilt_controller.compute(tilt_error) # positive means move up
 
         pan_speed = self.limit(pan_command, 24)  # max speed for pan is 24
         tilt_speed = self.limit(tilt_command, 18)  # max speed for titlt is 18
@@ -93,8 +93,8 @@ class Camera:
 
         dur = 0.001
 
-        zoom_command = zoom_controller.compute(error) # positive means zoom in
-        zoom_speed = limit(zoom_command, 1)
+        zoom_command = self.zoom_controller.compute(error) # positive means zoom in
+        zoom_speed = self.limit(zoom_command, 1)
 
         if not zoom_speed:
             self.ptz.zoomstop()
