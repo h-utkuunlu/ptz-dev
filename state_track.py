@@ -19,7 +19,7 @@ def in_track_fn(parent):
         move(parent)
         # Draw bounding box
         cv_im = frame.clone()
-        p1 = (int(x)), int(y))
+        p1 = (int(x), int(y))
         p2 = (int(x + w), int(y + h))
         cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
         cv2.imshow("gui", cv_im)

@@ -9,7 +9,7 @@ def in_id_fn(parent):
     print('=== id')
 
     for i, img in enumerate(parent.cur_imgs):
-        _, ids, _ = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+        _, ids, _ = aruco.detectMarkers(img, aruco_dict, parameters=parameters)
 
         if ids and ids[0][0] == 42:
             print("Found drone")

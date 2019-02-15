@@ -1,6 +1,7 @@
 from threading import Timer
 import time
 import random
+import cv2
 
 def in_search_fn(parent):
     print('=== search')
@@ -19,10 +20,14 @@ def in_search_fn(parent):
     parent.in_pos()
 
 def out_search_fn(parent):
-    pxcnt=20
+    pxcnt=200
     parent.bg_model = cv2.bgsegm.createBackgroundSubtractorCNT(minPixelStability=pxcnt)
     init_count=0
+    
     while init_count < pxcnt:
+        frame = parent.camera.cvreader.Read()
+        if frame is None:
+            continue
         _ = parent.bg_model.apply(frame)
         init_count += 1
     parent.timer_expir = False

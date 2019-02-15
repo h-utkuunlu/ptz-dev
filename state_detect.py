@@ -16,8 +16,8 @@ def in_detect_fn(parent):
     print("=== detect")
 
     # Setup
-    parent.cur_imgs = None
-    parent.cur_bboxes = None
+    parent.cur_imgs = []
+    parent.cur_bboxes = []
     
     # Tuning parameters
     kernel_size = 5
@@ -29,13 +29,13 @@ def in_detect_fn(parent):
     res = (parent.camera.width, parent.camera.height)
         
     while not parent.timer_expir:
-        
         frame = parent.camera.cvreader.Read()
+        if frame is None:
+            continue
         fgmask = parent.bg_model.apply(frame)
         fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
         fgmask = cv2.dilate(fgmask, kernel, iterations=10)
         fgmask = cv2.erode(fgmask, kernel, iterations=8)
-
         _, contours, _ = cv2.findContours(fgmask, cv2.RETR_LIST, cv2.CHAIN_APPROX_TC89_L1)
         
         for c in contours:

@@ -30,7 +30,7 @@ Finite state machine for ptz aerial tracking
 pip install transitions
 '''
 
-
+import cv2
 import time
 import random
 from transitions import Machine, State
@@ -64,13 +64,18 @@ class Flow(object):
         self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
         self.camera = Camera(PIDController(),PIDController(),PIDController())
         self.bg_model = None
-        self.cur_imgs = None
-        self.cur_bboxes = None
+        self.cur_imgs = []
+        self.cur_bboxes = []
         self.drone_bbox = None
         self.tracker = cv2.TrackerKCF_create()
         self.timeout_interval = 5
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
-        
+
+        init_count = 0
+        while init_count < 5:
+            _ = self.camera.cvreader.Read()
+            init_count += 1
+
         
     def expiry(self):
         self.timer_expir = True
@@ -84,9 +89,7 @@ class Flow(object):
         out_search_fn(self)
         
     def on_enter_detect(self):
-        #in_detect_fn(self)
-        print("detecting")
-        self.found_obj()
+        in_detect_fn(self)
 
     def on_exit_detect(self):
         out_detect_fn(self)
