@@ -25,7 +25,7 @@ def in_track_fn(parent):
         cv2.imshow("gui", cv_im)
 
 def move(parent):
-    x, y, w, h = parent.drone_bbox
+    x, y, w, h = parent.drone_bbox[0], parent.drone_bbox[1], parent.drone_bbox[2], parent.drone_bbox[3]
     # control camera
     center = (x + w/2, y + h/2)
     pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
