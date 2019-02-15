@@ -5,7 +5,7 @@ from camera import Camera, PIDController
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-H', '--host', default='192.168.1.40', help="Host address for the camera for PTZ control")
+parser.add_argument('-H', '--host', default='192.168.2.42', help="Host address for the camera for PTZ control")
 parser.add_argument('-p', '--port', default=5678, help="Port for TCP comms PTZ control", type=int)
 parser.add_argument('-d', '--dev', default=0, help='Camera USB device location for OpenCV', type=int)
 parser.add_argument('-c', '--count', default=600, help='Number of frames to run for non-GUI mode', type=int)
@@ -52,6 +52,7 @@ camera = Camera(usbdevnum=0,
 if args.gui:
     cv2.namedWindow("cam")
     cv2.moveWindow("cam", 20, 20)
+    gui_mode = True
 
 
 start_time = time()
@@ -86,8 +87,8 @@ while True:
         if key == ord('q'):
             break
 
-    pan_error, tilt_error = camera.errors_pt(center, width, height)
-    zoom_error = camera.error_zoom(2*radius, height)
+    pan_error, tilt_error = camera.errors_pt(center, camera.width, camera.height)
+    zoom_error = camera.error_zoom(2*radius, camera.height)
     camera.control(pan_error=pan_error, tilt_error=tilt_error)
     camera.control_zoom(zoom_error)
 
