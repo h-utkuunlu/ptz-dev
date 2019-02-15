@@ -607,7 +607,7 @@ class PTZOptics20x(TCPCamera):
 
 
 class PIDController:
-    def __init__(self, kp, kd, ki, T, omega_c):
+    def __init__(self, kp=1.2, kd=0.1, ki=0.1, T=1/50, omega_c=2*3.14*10):
         self.past = {
             "err": 0.0,
             "diff": 0.0,

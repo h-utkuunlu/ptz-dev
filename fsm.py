@@ -33,12 +33,15 @@ pip install transitions
 
 import time
 import random
+from transitions import Machine, State
+from threading import Timer
+
 from state_search import in_search_fn, out_search_fn
 from state_detect import in_detect_fn, out_detect_fn
 from state_id import in_id_fn, out_id_fn
 from state_track import in_track_fn, out_track_fn
-from transitions import Machine, State
-from threading import Timer
+
+
 
 class Flow(object):
     states=[
