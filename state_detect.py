@@ -47,7 +47,7 @@ def in_detect_fn(parent):
                 parent.cur_bboxes.append((x, y, w, h))
                 
         if found:
-            # print(parent.state)
+            print("found_obj")
             parent.found_obj()
             
     # print(parent.state)

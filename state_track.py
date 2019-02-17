@@ -23,6 +23,7 @@ def in_track_fn(parent):
         p2 = (int(x + w), int(y + h))
         cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
         cv2.imshow("gui", cv_im)
+    parent.lost_track()
 
 def move(parent):
     x, y, w, h = parent.drone_bbox[0], parent.drone_bbox[1], parent.drone_bbox[2], parent.drone_bbox[3]
@@ -34,7 +35,6 @@ def move(parent):
     parent.camera.control_zoom(zoom_error)
 
 def out_track_fn(parent):
-    print('lost track')
+    print('lost_track')
     parent.tracker.clear()
-    # print(parent.state)
-    parent.lost_track()
+

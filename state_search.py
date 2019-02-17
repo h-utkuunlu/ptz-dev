@@ -17,7 +17,7 @@ def in_search_fn(parent):
         if time.time() > local_timer + 0.5:
             if parent.camera.ptz.get_pan_tilt_position()[0] == pan:
                 home=True
-    # print(parent.state)    
+    print("in_pos")    
     parent.in_pos()
 
 def out_search_fn(parent):
