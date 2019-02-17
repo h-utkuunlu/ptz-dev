@@ -27,7 +27,7 @@ def in_detect_fn(parent):
     found = False
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kernel_size, kernel_size))
     res = (parent.camera.width, parent.camera.height)
-        
+    # bug001: detects objects instantly even if camera is not connected -> results in an infinite loop of detect-id-detect that overflows trigger recursion depth of transitions
     while not parent.timer_expir:
         frame = parent.camera.cvreader.Read()
         if frame is None:
@@ -47,8 +47,10 @@ def in_detect_fn(parent):
                 parent.cur_bboxes.append((x, y, w, h))
                 
         if found:
+            # print(parent.state)
             parent.found_obj()
-        
+            
+    # print(parent.state)
     parent.timeout()
 
 def out_detect_fn(parent):

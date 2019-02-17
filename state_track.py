@@ -1,10 +1,10 @@
 import argparse
-import imutils
+#import imutils
 import time
 import cv2
 
 def in_track_fn(parent):
-    print('tracking')
+    print('=== tracking')
     move(parent)  # control camera based on drone bbox
     frame = parent.camera.cvreader.Read()
     success = parent.tracker.init(frame, parent.drone_bbox)
@@ -36,4 +36,5 @@ def move(parent):
 def out_track_fn(parent):
     print('lost track')
     parent.tracker.clear()
+    # print(parent.state)
     parent.lost_track()
