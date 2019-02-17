@@ -13,8 +13,8 @@ def add_padding(rect_par, ratio, dims):
 
 def in_detect_fn(parent):
 
-    print("=== detect")
-
+    #print("det.", end='')
+    
     # Setup
     parent.cur_imgs = []
     parent.cur_bboxes = []
@@ -28,14 +28,19 @@ def in_detect_fn(parent):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kernel_size, kernel_size))
     res = (parent.camera.width, parent.camera.height)
     # bug001: detects objects instantly even if camera is not connected -> results in an infinite loop of detect-id-detect that overflows trigger recursion depth of transitions
+    cv2.namedWindow("fgmask",cv2.WINDOW_NORMAL)
     while not parent.timer_expir:
         frame = parent.camera.cvreader.Read()
         if frame is None:
             continue
+        cv2.imshow("main_window",frame)
+        cv2.waitKey(1)
         fgmask = parent.bg_model.apply(frame)
         fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
         fgmask = cv2.dilate(fgmask, kernel, iterations=10)
         fgmask = cv2.erode(fgmask, kernel, iterations=8)
+        cv2.imshow("fgmask",fgmask)
+        cv2.waitKey(1)
         _, contours, _ = cv2.findContours(fgmask, cv2.RETR_LIST, cv2.CHAIN_APPROX_TC89_L1)
         
         for c in contours:
@@ -47,7 +52,7 @@ def in_detect_fn(parent):
                 parent.cur_bboxes.append((x, y, w, h))
                 
         if found:
-            print("found_obj")
+            #print("ha!", end='')
             parent.found_obj()
             return
             

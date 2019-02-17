@@ -67,7 +67,8 @@ class Flow(object):
         self.cur_imgs = []
         self.cur_bboxes = []
         self.drone_bbox = None
-        self.tracker = cv2.TrackerKCF_create()
+        self.tracker = None #cv2.TrackerCSRT_create()
+        
         self.timeout_interval = 5
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
 
@@ -110,6 +111,7 @@ class Flow(object):
 if __name__ == "__main__":
     flow=Flow()
     flow.in_pos()
+    cv2.namedWindow("main_window", cv2.WINDOW_NORMAL)
     while True:
         if flow.is_search():
             in_search_fn(flow)
