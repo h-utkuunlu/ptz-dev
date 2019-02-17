@@ -34,7 +34,7 @@ class Camera:
     def stop(self):
         self.cvreader.Stop()
         self.cvcamera.release()
-        self.ptz.stop()
+        self.ptz.end()
 
     def control(self, pan_error, tilt_error):
 

@@ -5,22 +5,24 @@ import cv2
 
 def in_track_fn(parent):
     print('=== tracking')
-    frame = parent.camera.cvreader.Read()   
-    parent.tracker = cv2.TrackerKCF_create()
-    move(parent)  # control camera based on drone bbox
-    success = parent.tracker.init(frame, parent.drone_bbox)
+
     cv2.namedWindow("gui",cv2.WINDOW_NORMAL)
+    frame = parent.camera.cvreader.Read()
+    success = parent.tracker.init(frame, parent.drone_bbox)
 
     while success:
+        move(parent)
         frame = parent.camera.cvreader.Read()
         if frame is None:
             continue
         success, parent.drone_bbox = parent.tracker.update(frame)
         if not success:
+            parent.camera.ptz.stop()
+            parent.camera.ptz.zoomto(0)
             break
 
-        x,y,w,h = move(parent)
         # Draw bounding box
+        x, y, w, h = parent.drone_bbox
         cv_im = frame.copy()
         p1 = (int(x), int(y))
         p2 = (int(x + w), int(y + h))
@@ -30,7 +32,7 @@ def in_track_fn(parent):
     parent.lost_track()
 
 def move(parent):
-    x, y, w, h = parent.drone_bbox[0], parent.drone_bbox[1], parent.drone_bbox[2], parent.drone_bbox[3]
+    
     # control camera
     center = (x + w/2, y + h/2)
     pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
@@ -38,8 +40,9 @@ def move(parent):
     parent.camera.control(pan_error=pan_error, tilt_error=tilt_error)
     parent.camera.control_zoom(zoom_error)
     return (x,y,w,h)
-    
+
 def out_track_fn(parent):
     print('lost_track')
-    parent.tracker = None
-
+    parent.tracker.clear()
+    parent.tracker = cv2.TrackerCSRT_create()
+    

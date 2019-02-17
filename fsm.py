@@ -67,8 +67,7 @@ class Flow(object):
         self.cur_imgs = []
         self.cur_bboxes = []
         self.drone_bbox = None
-        self.tracker = None #cv2.TrackerCSRT_create()
-        
+        self.tracker = cv2.TrackerCSRT_create()
         self.timeout_interval = 5
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
 
