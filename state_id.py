@@ -11,13 +11,14 @@ def in_id_fn(parent):
     for i, img in enumerate(parent.cur_imgs):
         _, ids, _ = aruco.detectMarkers(img, aruco_dict, parameters=parameters)
 
-        if ids and ids[0][0] == 42:
+        if ids is not None and ids[0][0] == 42:
             print("drone")
             parent.drone_bbox = parent.cur_bbox[i]
             # print(parent.state)
             parent.drone()
+            return
         else:
-            print("not_drone")
+            pass #print("not_drone")
     
     # print("No drone :(")
     # print(parent.state)

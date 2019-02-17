@@ -49,6 +49,7 @@ def in_detect_fn(parent):
         if found:
             print("found_obj")
             parent.found_obj()
+            return
             
     # print(parent.state)
     parent.timeout()
