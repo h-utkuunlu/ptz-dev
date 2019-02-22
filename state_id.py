@@ -1,13 +1,28 @@
 import time
 import cv2
 import cv2.aruco as aruco
+from dnn import real_time_evaluate, PrepareRTImage, read_stats
 
 aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_250)
 parameters = aruco.DetectorParameters_create()
+voter_ct = 5
+
+test_stats = dnn.read_stats("./stats") 
+data_prep = dnn.PrepareRTImage(224, voter_ct, test_stats)
 
 def in_id_fn(parent):
-    #print('id.', end='')
 
+    predictions = dnn.real_time_evaluate(network, data_prep(parent.cur_imgs), voter_ct)
+    for iter, pred in enumerate(predictions):
+        x, y, w, h = boundingRect[iter]
+        if pred == 1:
+            parent.drone_bbox = parent.cur_bboxes[i]
+            parent.drone()
+            print("Drone identified")
+        else:
+            pass
+
+    '''
     for i, img in enumerate(parent.cur_imgs):
         _, ids, _ = aruco.detectMarkers(img, aruco_dict, parameters=parameters)
 
@@ -19,9 +34,8 @@ def in_id_fn(parent):
             return
         else:
             pass #print("not_drone")
-    
-    # print("No drone :(")
-    # print(parent.state)
+    '''
+
     parent.not_drone()
 
 def out_id_fn(parent):
@@ -31,7 +45,6 @@ def async_id(parent):
     
     frame = parent.camera.cvreader.Read()
     if frame is None:
-        print("None frame")
         return
 
     vals = [int(a) for a in parent.drone_bbox]
@@ -40,13 +53,20 @@ def async_id(parent):
     roi = frame[y:y+h, x:x+w].copy()
     
     cv2.namedWindow("async_id", cv2.WINDOW_NORMAL)
-    
     cv2.imshow("async_id", roi)
     cv2.waitKey(1)
 
+    prediction = dnn.real_time_evaluate(network, data_prep(roi), voter_ct)[0]
+    if prediction == 1:
+        return 1
+    else:
+        return 0
+
+    '''
     _, ids, _ = aruco.detectMarkers(roi, aruco_dict, parameters=parameters)
 
     if ids is not None and ids[0][0] == 42:
         return 1
     else:
         return 0
+    '''
