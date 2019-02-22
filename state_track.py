@@ -19,7 +19,7 @@ def in_track_fn(parent):
         success, parent.drone_bbox = parent.tracker.update(frame)
         if not success:
             parent.camera.ptz.stop()
-            parent.camera.ptz.zoomto(0)
+            parent.camera.ptz.zoomto(0,'tcp')
             break
 
         # Draw bounding box

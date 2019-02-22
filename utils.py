@@ -554,7 +554,7 @@ class PTZOptics20x(TCPCamera):
         self._zContinuous = True
         return self.comm(s, 'udp')
 
-    def zoomto(self, zoom):
+    def zoomto(self, zoom, channel='udp'):
         """Moves camera to absolute zoom setting.
 
         :param zoom: numeric zoom position
@@ -568,7 +568,7 @@ class PTZOptics20x(TCPCamera):
 
         s = '81010447pqrsFF'.replace(
             'pqrs', zoom_hex)
-        return self.comm(s, 'udp')
+        return self.comm(s, channel)
 
     def left(self, amount=5):
         """Modifies pan speed to left.
