@@ -181,20 +181,7 @@ class CameraReaderAsync:
                     self.__tilt = tilt
                 finally:
                     self.__telemetry_lock.release()
-
             sleep(0.01)
-            '''
-            if validPT:
-                try:
-                    print("I'm putting pan and tilt in")
-                    self.__telemetry_lock.acquire()
-                    self.__pan = pan
-                    self.__tilt = tilt
-                finally:
-                    self.__telemetry_lock.release()
-            sleep(0.01)
-            '''
-
             
     def Start(self):
         self.__lastFrameRead = False
