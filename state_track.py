@@ -11,7 +11,8 @@ def in_track_fn(parent):
     success = parent.tracker.init(frame, parent.drone_bbox)
 
     while success:
-        move(parent)
+        zoom = parent.camera.cvreader.ReadZoom()
+        move(parent, zoom)
         frame = parent.camera.cvreader.Read()
         if frame is None:
             continue
@@ -31,15 +32,15 @@ def in_track_fn(parent):
         cv2.waitKey(1)
     parent.lost_track()
 
-def move(parent):
+def move(parent, zoom):
     
     # control camera
     x, y, w, h = parent.drone_bbox
     center = (x + w/2, y + h/2)
     pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
     zoom_error = parent.camera.error_zoom((w+h)/2, parent.camera.height)
-    parent.camera.control(pan_error=pan_error, tilt_error=tilt_error)
-    parent.camera.control_zoom(zoom_error)
+    parent.camera.control(pan_error=pan_error/zoom, tilt_error=tilt_error/zoom)
+    parent.camera.control_zoom(zoom_error/zoom)
     return (x,y,w,h)
 
 def out_track_fn(parent):

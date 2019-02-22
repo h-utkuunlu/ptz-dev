@@ -19,18 +19,20 @@ class Camera:
         self.width = width
         self.height = height
         
-        # Open video stream as CV camera
-        self.cvcamera = cv2.VideoCapture(usbdevnum)
-        self.cvcamera.set(3, width)
-        self.cvcamera.set(4, height)
-        self.cvcamera.set(5, fps)
-        self.cvreader = CameraReaderAsync(self.cvcamera)
-
         # Connect to PTZOptics camera for controls
         self.ptz = PTZOptics20x(host=host, tcp_port=5678, udp_port=1259).init()
         self.pan_controller = pan_controller
         self.tilt_controller = tilt_controller
         self.zoom_controller = zoom_controller
+        
+        # Open video stream as CV camera
+        self.cvcamera = cv2.VideoCapture(usbdevnum)
+        self.cvcamera.set(3, width)
+        self.cvcamera.set(4, height)
+        self.cvcamera.set(5, fps)
+        
+        # object running threads to get most recent frame and most recent zoom
+        self.cvreader = CameraReaderAsync(self.cvcamera, self.ptz)
 
     def stop(self):
         self.cvreader.Stop()
@@ -141,12 +143,13 @@ class CameraReaderAsync:
         def getFramerate(self):
             return self.framerate
 
-    def __init__(self, videoSource):
+    def __init__(self, videoSource, ptz):
         self.__lock = Lock()
         self.__source = videoSource
+        self.__ptz = ptz
         self.Start()
 
-    def __ReadAsync(self):
+    def __ReadFrameAsync(self):
         while True:
             if self.__stopRequested:
                 return
@@ -159,14 +162,28 @@ class CameraReaderAsync:
                     self.__lastFrameRead = False
                 finally:
                     self.__lock.release()
+                    
+    def __ReadZoomAsync(self):
+        while True:
+            if self.__stopRequested:
+                return
+            zoom, validZoom = self.ptz.get_zoom_position()
+            if validZoom:
+                try:
+                    self.__lock.acquire()
+                    self.__zoom = zoom
+                finally:
+                    self.__lock.release()
 
     def Start(self):
         self.__lastFrameRead = False
         self.__frame = None
         self.__stopRequested = False
         self.__validFrame = False
+        self.__zoom = 0
         self.fps = CameraReaderAsync.WeightedFramerateCounter()
-        Thread(target=self.__ReadAsync).start()
+        Thread(target=self.__ReadFrameAsync).start()
+        Thread(target=self.__ReadZoomAsync).start()
 
     def Stop(self):
         self.__stopRequested = True
@@ -184,7 +201,14 @@ class CameraReaderAsync:
             return None
         finally:
             self.__lock.release()
-
+            
+    def ReadZoom(self):
+        try:
+            self.__lock.acquire()
+            return self.__zoom
+        finally:
+            self.__lock.release()
+        
     # Return the last frame read even if it has been retrieved before.
     # Will return None if we never read a valid frame from the source.
     def ReadLastFrame(self):
@@ -353,8 +377,8 @@ class PTZOptics20x(TCPCamera):
             for x in range(1, 9, 2):
                 r += msg[x]
             x = int(r, 16)
-            return x, True
-        return -1, False
+            return True, x
+        return False, -1
 
     def get_pan_tilt_position(self):
         """Retrieves current pan/tilt position.
@@ -377,8 +401,8 @@ class PTZOptics20x(TCPCamera):
             for x in range(9, 17, 2):
                 r += msg[x]
             tilt = int(r, 16)
-            return pan, tilt, True
-        return -1,-1, False
+            return True, pan, tilt
+        return False, -1, -1
 
     def home(self):
         """Moves camera to home position.
