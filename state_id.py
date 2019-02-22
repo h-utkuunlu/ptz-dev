@@ -7,7 +7,7 @@ aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_250)
 parameters = aruco.DetectorParameters_create()
 voter_ct = 5
 
-test_stats = read_stats("./stats") 
+test_stats = read_stats("./dataset_stats") 
 data_prep = PrepareRTImage(224, voter_ct, test_stats)
 
 def in_id_fn(parent):
@@ -20,6 +20,7 @@ def in_id_fn(parent):
             parent.drone()
             drone = True
             print("Drone identified")
+            break
         else:
             pass
 
@@ -57,7 +58,7 @@ def async_id(parent):
     cv2.imshow("async_id", roi)
     cv2.waitKey(1)
 
-    prediction = dnn.real_time_evaluate(network, data_prep(roi), voter_ct)[0]
+    prediction = real_time_evaluate(parent.network, data_prep([roi]), voter_ct)[0]
     if prediction == 1:
         return 1
     else:

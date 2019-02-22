@@ -68,7 +68,6 @@ class PrepareRTImage(object):
             scaling = 225.0/min(h, w)
             image = cv2.resize(image, None, fx=scaling, fy=scaling, interpolation=cv2.INTER_CUBIC)
         return image
-
     
     def __call__(self, images):
 
