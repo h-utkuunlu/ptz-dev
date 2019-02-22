@@ -7,7 +7,6 @@ from state_id import async_id
 def in_track_fn(parent):
     print('=== tracking')
 
-    cv2.namedWindow("gui",cv2.WINDOW_NORMAL)
     frame = parent.camera.cvreader.Read()
     success = parent.tracker.init(frame, parent.drone_bbox)
 
@@ -32,7 +31,7 @@ def in_track_fn(parent):
         p1 = (int(x), int(y))
         p2 = (int(x + w), int(y + h))
         cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
-        cv2.imshow("gui", cv_im)
+        cv2.imshow("main_window", cv_im)
         cv2.waitKey(1)
 
         if time.time() - local_timer > timeout:
