@@ -2,6 +2,7 @@ import argparse
 #import imutils
 import time
 import cv2
+from state_id import async_id
 
 def in_track_fn(parent):
     print('=== tracking')
@@ -10,6 +11,9 @@ def in_track_fn(parent):
     frame = parent.camera.cvreader.Read()
     success = parent.tracker.init(frame, parent.drone_bbox)
 
+    local_timer = time.time()
+    timeout = 5
+    
     while success:
         zoom = parent.camera.cvreader.ReadZoom()
         move(parent, zoom)
@@ -30,6 +34,13 @@ def in_track_fn(parent):
         cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
         cv2.imshow("gui", cv_im)
         cv2.waitKey(1)
+
+        if time.time() - local_timer > timeout:
+            local_timer = time.time()
+            status = async_id(parent)
+            if status != 1:
+                break
+        
     parent.lost_track()
 
 def move(parent, zoom):

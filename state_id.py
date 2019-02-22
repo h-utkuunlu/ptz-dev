@@ -26,3 +26,27 @@ def in_id_fn(parent):
 
 def out_id_fn(parent):
     pass
+
+def async_id(parent):
+    
+    frame = parent.camera.cvreader.Read()
+    if frame is None:
+        print("None frame")
+        return
+
+    vals = [int(a) for a in parent.drone_bbox]
+    x, y, w, h = max(0, vals[0]), max(0, vals[1]), min(parent.camera.width, vals[2]), min(parent.camera.height, vals[3]) 
+
+    roi = frame[y:y+h, x:x+w].copy()
+    
+    cv2.namedWindow("async_id", cv2.WINDOW_NORMAL)
+    
+    cv2.imshow("async_id", roi)
+    cv2.waitKey(1)
+
+    _, ids, _ = aruco.detectMarkers(roi, aruco_dict, parameters=parameters)
+
+    if ids is not None and ids[0][0] == 42:
+        return 1
+    else:
+        return 0
