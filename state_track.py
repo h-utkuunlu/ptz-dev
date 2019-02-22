@@ -34,6 +34,7 @@ def in_track_fn(parent):
 def move(parent):
     
     # control camera
+    x, y, w, h = parent.drone_bbox
     center = (x + w/2, y + h/2)
     pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
     zoom_error = parent.camera.error_zoom((w+h)/2, parent.camera.height)
@@ -43,6 +44,6 @@ def move(parent):
 
 def out_track_fn(parent):
     print('lost_track')
-    parent.tracker.clear()
+    #parent.tracker.clear()
     parent.tracker = cv2.TrackerCSRT_create()
     

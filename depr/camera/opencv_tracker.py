@@ -16,7 +16,8 @@ OPENCV_OBJECT_TRACKERS = {
     "mil": cv2.TrackerMIL_create,
     "tld": cv2.TrackerTLD_create,
     "medianflow": cv2.TrackerMedianFlow_create,
-    "mosse": cv2.TrackerMOSSE_create
+    "mosse": cv2.TrackerMOSSE_create,
+    "goturn": cv2.TrackerGOTURN_create
 }
 
 # initialize OpenCV's special multi-object tracker
@@ -24,20 +25,24 @@ trackers = cv2.MultiTracker_create()
 
 if not args.get("video", False):
     print("[INFO] starting video stream...")
-    vs = VideoStream(src=0).start()
+    vs = cv2.VideoCapture(0)
+    vs.set(3, 1280)
+    vs.set(4, 720)
     time.sleep(1.0)
     
 # otherwise, grab a reference to the video file
 else:
     vs = cv2.VideoCapture(args["video"])
-
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter(args.filename, fourcc, 20.0, (640, 480))
     
+    
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter(args["output"], fourcc, 60.0, (1280, 720))
+cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+
 while True:
     # grab the current frame, then handle if we are using a
 	# VideoStream or VideoCapture object
-    frame = vs.read()
+    _, frame = vs.read()
     frame = frame[1] if args.get("video", False) else frame
     
     # check to see if we have reached the end of the stream

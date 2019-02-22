@@ -13,7 +13,7 @@ import numpy as np
 
 class Camera:
 
-    def __init__(self, pan_controller, tilt_controller, zoom_controller, usbdevnum=0, width=1280, height=720, host='192.168.2.42', tcp_port=5678, udp_port=1259):
+    def __init__(self, pan_controller, tilt_controller, zoom_controller, usbdevnum=0, width=1280, height=720, fps=60, host='192.168.2.42', tcp_port=5678, udp_port=1259):
 
         # Camera params
         self.width = width
@@ -23,6 +23,7 @@ class Camera:
         self.cvcamera = cv2.VideoCapture(usbdevnum)
         self.cvcamera.set(3, width)
         self.cvcamera.set(4, height)
+        self.cvcamera.set(5, fps)
         self.cvreader = CameraReaderAsync(self.cvcamera)
 
         # Connect to PTZOptics camera for controls
@@ -304,6 +305,7 @@ class PTZOptics20x(TCPCamera):
         if super(self.__class__, self).init() is None:
             return None
         print("Camera controller initialized")
+        self.comm('8101043803FF', 'udp') # Set focus to manual
         return self
 
     def panTiltOngoing(self):
