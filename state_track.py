@@ -15,7 +15,7 @@ def in_track_fn(parent):
     timeout = 5
     
     while success:
-        zoom = parent.camera.cvreader.ReadZoom()
+        zoom = parent.camera.cvreader.ReadTelemetry()[2]
         move(parent, zoom)
         frame = parent.camera.cvreader.Read()
         if frame is None:

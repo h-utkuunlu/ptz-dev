@@ -1,6 +1,5 @@
 from threading import Thread
 from threading import Lock
-import time
 from time import sleep, time
 import cv2
 import re
@@ -145,6 +144,7 @@ class CameraReaderAsync:
 
     def __init__(self, videoSource, ptz):
         self.__lock = Lock()
+        self.__telemetry_lock = Lock()
         self.__source = videoSource
         self.__ptz = ptz
         self.Start()
@@ -163,18 +163,39 @@ class CameraReaderAsync:
                 finally:
                     self.__lock.release()
                     
-    def __ReadZoomAsync(self):
+    def __ReadTelemetryAsync(self):
         while True:
             if self.__stopRequested:
                 return
-            zoom, validZoom = self.ptz.get_zoom_position()
-            if validZoom:
-                try:
-                    self.__lock.acquire()
-                    self.__zoom = zoom
-                finally:
-                    self.__lock.release()
 
+            validZoom, zoom = self.__ptz.get_zoom_position()
+            sleep(0.005)
+            validPT, pan, tilt = self.__ptz.get_pan_tilt_position()
+
+            if validZoom and validPT:
+                try:
+                    #print("I'm putting telemetry in")
+                    self.__telemetry_lock.acquire()
+                    self.__zoom = (zoom/862.32)+1
+                    self.__pan = pan
+                    self.__tilt = tilt
+                finally:
+                    self.__telemetry_lock.release()
+
+            sleep(0.01)
+            '''
+            if validPT:
+                try:
+                    print("I'm putting pan and tilt in")
+                    self.__telemetry_lock.acquire()
+                    self.__pan = pan
+                    self.__tilt = tilt
+                finally:
+                    self.__telemetry_lock.release()
+            sleep(0.01)
+            '''
+
+            
     def Start(self):
         self.__lastFrameRead = False
         self.__frame = None
@@ -183,7 +204,7 @@ class CameraReaderAsync:
         self.__zoom = 0
         self.fps = CameraReaderAsync.WeightedFramerateCounter()
         Thread(target=self.__ReadFrameAsync).start()
-        Thread(target=self.__ReadZoomAsync).start()
+        Thread(target=self.__ReadTelemetryAsync).start()
 
     def Stop(self):
         self.__stopRequested = True
@@ -202,12 +223,12 @@ class CameraReaderAsync:
         finally:
             self.__lock.release()
             
-    def ReadZoom(self):
+    def ReadTelemetry(self):
         try:
-            self.__lock.acquire()
-            return self.__zoom
+            self.__telemetry_lock.acquire()
+            return self.__pan, self.__tilt, self.__zoom
         finally:
-            self.__lock.release()
+            self.__telemetry_lock.release()
         
     # Return the last frame read even if it has been retrieved before.
     # Will return None if we never read a valid frame from the source.

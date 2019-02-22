@@ -15,11 +15,14 @@ def in_search_fn(parent):
     home = False
     while not home:
         if time.time() > local_timer + 0.5:
-            if parent.camera.ptz.get_pan_tilt_position()[0] == pan:
+            local_timer = time.time()
+            telemetry = parent.camera.cvreader.ReadTelemetry()
+            if telemetry[0] == pan and telemetry[2] == 1:
                 home=True
             else:
                 parent.camera.ptz.goto(pan,0,24)
-
+                parent.camera.ptz.zoomto(0)
+                                
     print("in_pos")    
     parent.in_pos()
 
