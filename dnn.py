@@ -10,10 +10,11 @@ import os
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils, models
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-def initialize_classifier(model_path):
+def initialize_net(model_path):
     network = models.resnet152(pretrained=True)
     for param in network.parameters():
         param.requires_grad = False
@@ -23,14 +24,16 @@ def initialize_classifier(model_path):
     network.eval()
 
     network = network.to(device)
-    load_model(model_path, network)
+
+    if model_path is not None:
+        load_model(model_path, network)
 
     # Run random sequences to initialize
     placeholder = torch.rand((400, 3, 224, 224)).to(device)
     for i in range(5):
-        start = time.time()
+        start = time()
         _ = network(placeholder)
-        print(time() - start)
+        #print(time() - start)
 
     return network
 
@@ -45,7 +48,7 @@ def read_stats(file):
     return stats
 
 class PrepareRTImage(object):
-
+        
     def __init__(self, size, num, stats):
         self.size = (size, size)
         self.num = num
@@ -58,11 +61,20 @@ class PrepareRTImage(object):
 
     def toTensor(self, data):
         return torch.tensor(data, dtype=torch.float)
+
+    def resize(self, image, min_dim):
+        h, w, _ = image.shape
+        if min(h, w) < 225:
+            scaling = 225.0/min(h, w)
+            image = cv2.resize(image, None, fx=scaling, fy=scaling, interpolation=cv2.INTER_CUBIC)
+        return image
+
     
     def __call__(self, images):
 
         data = []        
         for image in images:
+            image = self.resize(image, 225)
             h, w = image.shape[:2]
             new_h, new_w = self.size
 

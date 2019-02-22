@@ -41,6 +41,7 @@ from state_detect import in_detect_fn, out_detect_fn
 from state_id import in_id_fn, out_id_fn
 from state_track import in_track_fn, out_track_fn
 from utils import *
+from dnn import initialize_net
 
 class Flow(object):
     states=[
@@ -58,25 +59,31 @@ class Flow(object):
     { 'trigger': 'lost_track', 'source': 'track', 'dest': 'search' }
     ]
     
-    def __init__(self):
+    def __init__(self, model_path):
+
+        # Variables
         self.timer_expir = True # bool for if timer expired
         self.obj_detected = False # bool for if object detected
-        self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
-        self.camera = Camera(PIDController(),PIDController(),PIDController())
-        self.bg_model = None
         self.cur_imgs = []
         self.cur_bboxes = []
         self.drone_bbox = None
-        self.tracker = cv2.TrackerCSRT_create()
+        self.bg_model = None
         self.timeout_interval = 5
-        self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
 
+        # Objects
+        self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
+        self.camera = Camera(PIDController(),PIDController(),PIDController())
+        self.tracker = cv2.TrackerCSRT_create()
+        self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
+        self.network = initialize_net(model_path)
+        
+        # Initialization routine
         init_count = 0
         while init_count < 5:
             _ = self.camera.cvreader.Read()
             init_count += 1
 
-        
+            
     def expiry(self):
         self.timer_expir = True
 

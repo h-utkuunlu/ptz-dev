@@ -7,17 +7,18 @@ aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_250)
 parameters = aruco.DetectorParameters_create()
 voter_ct = 5
 
-test_stats = dnn.read_stats("./stats") 
-data_prep = dnn.PrepareRTImage(224, voter_ct, test_stats)
+test_stats = read_stats("./stats") 
+data_prep = PrepareRTImage(224, voter_ct, test_stats)
 
 def in_id_fn(parent):
 
-    predictions = dnn.real_time_evaluate(network, data_prep(parent.cur_imgs), voter_ct)
+    drone = False
+    predictions = real_time_evaluate(parent.network, data_prep(parent.cur_imgs), voter_ct)
     for iter, pred in enumerate(predictions):
-        x, y, w, h = boundingRect[iter]
         if pred == 1:
-            parent.drone_bbox = parent.cur_bboxes[i]
+            parent.drone_bbox = parent.cur_bboxes[iter]
             parent.drone()
+            drone = True
             print("Drone identified")
         else:
             pass
@@ -35,8 +36,8 @@ def in_id_fn(parent):
         else:
             pass #print("not_drone")
     '''
-
-    parent.not_drone()
+    if not drone:
+        parent.not_drone()
 
 def out_id_fn(parent):
     pass
