@@ -190,7 +190,7 @@ def video_loader(video_path, existing_entries):
     success, frame = video.read()
     count = 1
     while success:
-        print("-----Loaded the image frame-----")
+        # print("-----Loaded the image frame-----")
         image_path = "{}({}).jpeg".format(video_path_name, count)  # the image path name if this frame were explicitely saved as a jpeg
         if (image_path not in existing_entries) and (count % int(args.skip) == 0):
             print("{} / {}".format(count, count_total))
@@ -261,7 +261,7 @@ def main():
         
         cv2.rectangle(cv_im, refPt[0], refPt[1], (0, 255, 0), 2)
         cv2.namedWindow("image", cv2.WINDOW_NORMAL)
-        cv2.moveWindow("image", 1366, 0)
+        cv2.moveWindow("image", 0, 0)
         cv2.setMouseCallback("image", click_and_crop)
         
         # keep looping until the 'q' key is pressed
