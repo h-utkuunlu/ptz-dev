@@ -183,7 +183,7 @@ def video_loader(video_path, existing_entries):
     count_processed = len(existing_entries)
     
     # Open video
-    video_path_name = video_path.rsplit(".")[0]  # take only the video name without prefix
+    video_path_name = video_path.rsplit(".", 1)[0]  # take only the video name without prefix
     print(video_path)
     video = cv2.VideoCapture(video_path)
     count_total = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
