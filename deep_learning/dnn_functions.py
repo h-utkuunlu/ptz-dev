@@ -19,14 +19,14 @@ def read_bin_class_data(dir):
     negative = []
 
     for file in os.listdir(dir + "positive/"):
-        if file.endswith(".jpg") or file.endswith(".jpeg") or file.endswith(".JPEG"):
+        if file.endswith(".jpg") or file.endswith(".jpeg") or file.endswith(".JPEG") or file.endswith(".png"):
             positive.append(["positive/" + file, 1])
         
     for file in os.listdir(dir + "negative/"):
-        if file.endswith(".jpg") or file.endswith(".JPEG"):
+        if file.endswith(".jpg") or file.endswith(".JPEG") or file.endswith(".png"):
             negative.append(["negative/" + file, 0])
     
-    return positive + negative
+    return negative + positive
         
 def read_stats(file):
     with open(file, 'r') as f:
@@ -119,29 +119,38 @@ def train(args, network, optimizer, loader):
 
 def evaluate(network, loader):
 
-    total = 0
-    correct = 0
-    actual_drones = 0
-    predicted_drones = 0
-    true_pos = 0
+    predictions, ground_truth = np.array([]), np.array([])
     
     with torch.no_grad():
         network.eval()
         
         for i, sample in enumerate(loader):
             images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
-
-            threshold = torch.Tensor([0.5]).to(device)
             outputs = network(images)
-            predictions = outputs > threshold
 
-            total += targets.size(0)
-            correct += (predictions == targets.byte()).sum().item()
-            actual_drones += targets.sum().item() # for recall
-            predicted_drones += predictions.sum().item()
-            true_pos += (predictions & targets.byte()).sum().item()
+            ground_truth = np.append(ground_truth, np.array(sample['targets']))
 
-    accuracy = 100.0 * (correct / total)
+            tmp_outputs = (np.squeeze(outputs.cpu().numpy()) > 0.5).astype(int)
+            predictions = np.append(predictions, tmp_outputs)
+            
+            '''
+            print(outputs_np)            
+            print(predictions)
+            print(targets_np)
+
+            print(outputs_np.shape)            
+            print(predictions.shape)
+            print(targets_np.shape)
+            
+            total += predictions.shape[0]
+            correct += np.sum(predictions == targets_np)
+            actual_drones += np.sum(targets_np) # for recall
+            predicted_drones += np.sum(predictions)
+            true_pos += np.sum(predictions & targets_np)
+     
+            '''
+    '''
+    #accuracy = 100.0 * (correct / total)
 
     if predicted_drones == 0:
         precision = 0
@@ -152,8 +161,9 @@ def evaluate(network, loader):
         recall = 0
     else:
         recall = 100.0 * (true_pos / actual_drones)
+    '''
 
-    return {'accuracy': accuracy, 'precision': precision, 'recall': recall}
+    return {'predictions': predictions, 'ground_truth': ground_truth}
 
 def timed_evaluate(network, loader, gui=False):
 
@@ -250,7 +260,7 @@ def asMinutes(s):
 def timeSince(since, percent):
     now = time.time()
     s = now - since
-    es = s / (percent)
+    es = s / percent
     rs = es - s
     return '%s (- %s)' % (asMinutes(s), asMinutes(rs))
 
@@ -332,7 +342,24 @@ class RandomCrop(object):
         image = image[top:top+new_h, left:left+new_h]
 
         return {'image': image, 'targets':targets}
+
+class Resize(object):
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, sample):
+        image, targets = sample['image'], sample['targets']
         
+        if self.size > image.shape[0]:
+            interpolation = cv2.INTER_CUBIC
+        else:
+            interpolation = cv2.INTER_AREA
+
+        image = cv2.resize(image, (self.size, self.size), interpolation=interpolation)
+                
+        return {'image':image, 'targets':targets}
+
+    
 class Corrupt(object):
     def __init__(self, prob):
         self.prob = prob
@@ -343,7 +370,7 @@ class Corrupt(object):
             return {'image': image, 'targets': targets}
 
         else:
-            corruptions = ["agbn", "blur", "occlusion"] # agbn: additive gaussian + bias
+            corruptions = ["agbn", "occlusion"] # agbn: additive gaussian + bias
             chosen = random.choice(corruptions)
             if chosen == "agbn":
                 image = self.gaussianNoise(self.biasNoise(image))

@@ -21,11 +21,14 @@ print(samples)
 for data in all_data:
 
     img = cv2.imread(args.dir + data[0], -1)
-    #print(img.shape)
+    if img is None:
+        print(data[0])
+        continue
+
     for i in range(3):
         im_mean[i] += np.mean(img[:,:,i])
         im_std[i] += np.std(img[:,:,i])
-        
+
 im_mean = [i/samples for i in im_mean]
 im_std = [i/samples for i in im_std]
 

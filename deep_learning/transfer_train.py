@@ -1,12 +1,11 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
-import model
 import dnn_functions as dnn
 import argparse
 from torchvision import transforms, utils, models
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
+from sklearn.metrics import accuracy_score, precision_score, recall_score
 import torch.optim as optim
 import time
 import os
@@ -27,13 +26,13 @@ args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 training_stats = dnn.read_stats(args.dataloc + "train/stats")
-test_stats = dnn.read_stats(args.dataloc + "test/stats")
+val_stats = dnn.read_stats(args.dataloc + "val/stats")
 
-train_dataset = dnn.DroneDataset(root_dir=args.dataloc + "train/", transform=transforms.Compose([ dnn.RandomCrop(224), dnn.Corrupt(0.4), dnn.Normalize(training_stats), dnn.ToTensor()]))
+train_dataset = dnn.DroneDataset(root_dir=args.dataloc + "train/", transform=transforms.Compose([ dnn.Resize(224), dnn.Corrupt(0.4), dnn.Normalize(training_stats), dnn.ToTensor()]))
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
-test_dataset = dnn.DroneDataset(root_dir=args.dataloc + "test/", transform=transforms.Compose([ dnn.RandomCrop(224), dnn.Normalize(test_stats), dnn.ToTensor()]))
-test_loader = DataLoader(test_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
+val_dataset = dnn.DroneDataset(root_dir=args.dataloc + "val/", transform=transforms.Compose([ dnn.Resize(224), dnn.Normalize(val_stats), dnn.ToTensor()]))
+val_loader = DataLoader(val_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
 network = models.resnet152(pretrained=True)
 
@@ -70,14 +69,20 @@ with open(args.logdir + logname, 'w') as f:
         print(i)
         f.write(i + "\n")
 
+
+start = time.time()
+
 ## Start Training
 for iter in range(1, args.epochs+1):
 
-    start = time.time()
     epoch_loss = dnn.train_epoch(network, criterion, optimizer, train_loader)
-    metrics = dnn.evaluate(network, test_loader)
+    results = dnn.evaluate(network, val_loader)
+    
+    accuracy = accuracy_score(results['ground_truth'], results['predictions'])
+    precision = precision_score(results['ground_truth'], results['predictions'])
+    recall = recall_score(results['ground_truth'], results['predictions'])
 
-    out_string = '%s (%d %.2f%%) Loss: %.4f Acc: %.3f Prc: %.3f Rec: %.3f' % (dnn.timeSince(start, iter / args.epochs), iter, (iter / args.epochs)*100.0, epoch_loss, metrics['accuracy'], metrics['precision'], metrics['recall'])
+    out_string = '%s (%d %.2f%%) Loss: %.4f Acc: %.3f Prc: %.3f Rec: %.3f' % (dnn.timeSince(start, float(iter) / float(args.epochs)), iter, (float(iter) / float(args.epochs))*100.0, epoch_loss, accuracy, precision, recall)
     print(out_string)
 
     with open(args.logdir + logname, 'a') as f:
