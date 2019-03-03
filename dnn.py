@@ -50,7 +50,7 @@ def read_stats(file):
 class PrepareRTImage(object):
         
     def __init__(self, size, stats):
-        self.size = (size, size)
+        self.size = size
         self.stats = stats
 
     def normalize(self, image):
@@ -85,7 +85,7 @@ def real_time_evaluate(network, data):
     with torch.no_grad():
         images = data.to(device)
         outputs = network(images)
-        results = (np.squeeze(outputs.cpu().numpy()) > 0.5).astype(int)
+        results = (outputs.cpu().numpy() > 0.5).astype(int)
         
     return results
 
