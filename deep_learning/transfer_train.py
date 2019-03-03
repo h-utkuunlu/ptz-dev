@@ -34,14 +34,14 @@ train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True, nu
 val_dataset = dnn.DroneDataset(root_dir=args.dataloc + "val/", transform=transforms.Compose([ dnn.Resize(224), dnn.Normalize(val_stats), dnn.ToTensor()]))
 val_loader = DataLoader(val_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
-network = models.resnet152(pretrained=True)
+network = models.resnet50(pretrained=True)
 
 #for param in network.parameters():
 #    param.requires_grad = False
 
 num_ftrs = network.fc.in_features
 network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-network = network.to(device)
+network = torch.nn.DataParallel(network).to(device)
 
 optimizer = torch.optim.Adam(network.parameters(), lr=args.lr)
 criterion = nn.BCELoss()
