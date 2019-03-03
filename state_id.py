@@ -1,19 +1,17 @@
 import time
 import cv2
-import cv2.aruco as aruco
+#import cv2.aruco as aruco
 from dnn import real_time_evaluate, PrepareRTImage, read_stats
 
-aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_250)
-parameters = aruco.DetectorParameters_create()
-voter_ct = 5
+#aruco_dict = aruco.Dictionary_get(aruco.DICT_4X4_250)
+#parameters = aruco.DetectorParameters_create()
 
-test_stats = read_stats("./dataset_stats") 
-data_prep = PrepareRTImage(224, voter_ct, test_stats)
+data_prep = PrepareRTImage(224, read_stats("./dataset_stats"))
 
 def in_id_fn(parent):
 
     drone = False
-    predictions = real_time_evaluate(parent.network, data_prep(parent.cur_imgs), voter_ct)
+    predictions = real_time_evaluate(parent.network, data_prep(parent.cur_imgs))
     for iter, pred in enumerate(predictions):
         if pred == 1:
             parent.drone_bbox = parent.cur_bboxes[iter]
@@ -58,7 +56,7 @@ def async_id(parent):
     cv2.imshow("async_id", roi)
     cv2.waitKey(1)
 
-    prediction = real_time_evaluate(parent.network, data_prep([roi]), voter_ct)[0]
+    prediction = real_time_evaluate(parent.network, data_prep([roi]))[0]
     if prediction == 1:
         return 1
     else:
