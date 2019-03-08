@@ -9,7 +9,7 @@ from state_detect import in_detect_fn, out_detect_fn
 from state_id import in_id_fn, out_id_fn
 from state_track import in_track_fn, out_track_fn
 
-from fsm import Flow
+from utils import Flow
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', default=None, help='Path to model to import')

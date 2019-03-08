@@ -1,31 +1,3 @@
-'''
-Finite state machine for ptz aerial tracking
-
- /''''''''''''''''''\
-|       search       | <--------------.
- \__________________/                 |
-   /|\          |                     |
-    |timeout    |in_pos               |
-    |          \|/                    |
- /''''''''''''''''''\                 |
-|       detect       |                |
- \__________________/                 |
-   /|\          |                     |
-    |not_drone  |found_obj            |
-    |          \|/                    |
- /''''''''''''''''''\                 |
-|         id         |                |
- \__________________/                 |
-          |                           |
-          |drone                      |
-         \|/                          |
- /''''''''''''''''''\  lost_track     |
-|       track        |----------------'
- \__________________/
-        
-
-pip install transitions
-'''
 
 import cv2
 import time
@@ -33,14 +5,42 @@ import random
 from transitions import Machine, State
 from threading import Timer
 
-from state_search import in_search_fn, out_search_fn
+from state_search import in_search_fn, out_search_fn 
 from state_detect import in_detect_fn, out_detect_fn
 from state_id import in_id_fn, out_id_fn
 from state_track import in_track_fn, out_track_fn
-from utils import *
+from utils import *             
 from dnn import initialize_net
 
 class Flow(object):
+    '''
+    Finite state machine for ptz aerial tracking
+    
+ /''''''''''''''''''\
+|       search       | <--------------.
+ \__________________/                 |
+    /|\          |                    |
+     |timeout    |in_pos              |
+     |          \|/                   |
+ /''''''''''''''''''\                 |
+|       detect       |                |
+ \__________________/                 |
+    /|\          |                    |
+     |not_drone  |found_obj           |
+     |          \|/                   |
+ /''''''''''''''''''\                 |
+|         id         |                |
+ \__________________/                 |
+     |                                |
+     |drone                           |
+    \|/                               |
+ /''''''''''''''''''\  lost_track     |
+|       track        |----------------'
+ \__________________/
+        
+
+pip install transitions
+'''
     states=[
         State('search'),
         State('detect'),
