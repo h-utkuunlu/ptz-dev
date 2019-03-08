@@ -16,7 +16,7 @@ from dnn import initialize_net, Resize
 
 class SensibleWindows(object):
     def __init__(self, frame_name='main_window'):
-        factor=0.75
+        factor=1
         self.mw_x=0
         self.mw_y=0
         self.mw_w=int(1920*factor)
@@ -26,6 +26,13 @@ class SensibleWindows(object):
         self.frame=None
         self.frame_name = frame_name
         self.initialized = False
+        cv2.namedWindow(self.frame_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.frame_name, self.mw_w, self.mw_h)
+        cv2.moveWindow(self.frame_name,self.mw_x,self.mw_y)
+        cv2.createButton('ABORT',abort,self)
+        cv2.createButton('Reset',reset,self)
+        self.ABORT = False
+        self.RESET = False
         
     def init(self,frame):
         h,w,ch = frame.shape
@@ -46,12 +53,19 @@ class SensibleWindows(object):
             self.async_frame=self.resizer(async_frame)
         self.display()
         
+        
     def display(self):
         numpy_horiz_concat = np.concatenate((self.frame, self.ch3_fgmask, self.async_frame), axis=1)
         cv2.imshow(self.frame_name, numpy_horiz_concat)
         cv2.waitKey(1)
        
+def abort(btn_state,parent):
+    parent.ABORT=True
+    
+def reset(btn_state,parent):
+    parent.RESET=True
 
+        
 class Flow(object):
     '''
     Finite state machine for ptz aerial tracking

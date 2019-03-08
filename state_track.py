@@ -38,7 +38,9 @@ def in_track_fn(parent):
             status = async_id(parent)
             if status != 1:
                 break
-        
+        if parent.gui.RESET or parent.gui.ABORT:
+            parent.gui.RESET = False
+            break
     parent.lost_track()
 
 def move(parent, zoom):
