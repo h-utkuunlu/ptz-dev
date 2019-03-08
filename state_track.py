@@ -3,7 +3,7 @@ import argparse
 import time
 import cv2
 from state_id import async_id
-
+import numpy as np
 def in_track_fn(parent):
     print('=== tracking')
 
@@ -54,8 +54,8 @@ def move(parent, zoom):
     return (x,y,w,h)
     
 def scale_factor(zoom_factor):
-    zoom_value = (zoom-1)*862.32
-    factor = 0.1214*exp(318.16*10^(-6)*zoom_value) + 1.0605
+    zoom_value = (zoom_factor-1)*862.32
+    factor = 0.1214*np.exp(318.16*10**(-6)*zoom_value) + 1.0605
     return factor
 
 def out_track_fn(parent):
