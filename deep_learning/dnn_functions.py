@@ -36,17 +36,7 @@ def read_stats(file):
                 "img_mean": [float(raw_stats[0]), float(raw_stats[1]), float(raw_stats[2])],
                 "img_std": [float(raw_stats[3]), float(raw_stats[4]), float(raw_stats[5])]
             }
-            '''
-            # Obsolete: No box regression
-            "r_mean": float(raw_stats[6]),
-            "r_std": float(raw_stats[7]),
-            "c_mean": float(raw_stats[8]),
-            "c_std": float(raw_stats[9]),
-            "w_mean": float(raw_stats[10]),
-            "w_std": float(raw_stats[11]),
-            "h_mean": float(raw_stats[12]),
-            "h_std": float(raw_stats[13])
-            '''
+
     return stats
 
 def read_datasets(dir):
@@ -54,7 +44,6 @@ def read_datasets(dir):
     Read all available txt files to generate one big list
     '''
     data = []
-    
     for file in os.listdir(dir):
         if (file.endswith(".csv")):
             data += read_dataset(dir + file)
@@ -159,14 +148,6 @@ def iterative_evaluate(network, loader):
             
     return {'predictions': predictions, 'ground_truth': ground_truth}
 
-def denormalize(output, stats):
-    values = [output.data[0][i].item() for i in range(5)]
-    values[1] = int(values[1]*stats["r_std"])
-    values[2] = int(values[2]*stats["c_std"])
-    values[3] = int(values[3]*stats["w_std"])
-    values[4] = int(values[4]*stats["h_std"])
-    return values
-
 def load_model(model_name, network, optimizer=None):
 
     state = torch.load(model_name)
@@ -221,20 +202,7 @@ class Normalize(object):
 
         norm_image = ( np.asarray(image, dtype=float) - np.asarray( self.stats["img_mean"], dtype=float).reshape(1, 1, 3) ) / np.asarray(self.stats["img_std"], dtype=float).reshape(1, 1, 3)
 
-        '''
-        # Obsoleted: Output normalization causes problems in scenarios where there is no bounding box.
-        r = (entry[2] - stats["r_mean"])*res_factor / stats["r_std"]
-        c = (entry[3] - stats["c_mean"])*res_factor / stats["c_std"]
-        w = (entry[4] - stats["w_mean"])*res_factor / stats["w_std"]
-        h = (entry[5] - stats["h_mean"])*res_factor / stats["h_std"]
-        
-        # Obsoleted: Classification problem instead of regression
-        r = targets[1] / self.stats["r_std"]
-        c = targets[2] / self.stats["c_std"]
-        w = targets[3] / self.stats["w_std"]
-        h = targets[4] / self.stats["h_std"]
-        '''
-        
+
         return {'image': norm_image, 'targets': targets}
 
 class Scale(object):
@@ -254,18 +222,6 @@ class Scale(object):
         targets = [targets[0], r, c, w, h]
         
         return {'image':image, 'targets':targets}
-
-# Obsolete: Eliminated squashing
-class Squash(object):
-    def __init__(self, size):
-        self.size = size
-
-    def __call__(self, sample):
-        image, targets = sample['image'], sample['targets']
-
-        res_im = cv2.resize(image, (224, 224))
-
-        return {'image': res_im, 'targets':targets}
 
 class RandomCrop(object):
     def __init__(self, size):

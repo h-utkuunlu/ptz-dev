@@ -204,7 +204,7 @@ class Camera:
 
     @staticmethod
     def error_zoom(size, height):
-        target_size = float(height)/10.0  # no specific reason for 8 factor
+        target_size = float(height)/5.0  # no specific reason for 8 factor
         return (target_size - size)/30  # no specific reason for 30
 
 
@@ -278,6 +278,8 @@ class CameraReaderAsync:
         self.__stopRequested = False
         self.__validFrame = False
         self.__zoom = 0
+        self.__pan = 0
+        self.__tilt = 0
         self.fps = CameraReaderAsync.WeightedFramerateCounter()
         Thread(target=self.__ReadFrameAsync).start()
         Thread(target=self.__ReadTelemetryAsync).start()
@@ -772,3 +774,25 @@ class PIDController:
             self.past["integ"] = integ
 
         return pid_out
+
+def expand_bbox(x, y, w, h, width=1920, height=1080):
+    diff = w - h
+
+    if diff > 0: # Wider image. Increase height
+        y -= diff // 2
+        h += diff
+        if y < 0:
+            y = max(0, y)  # Takes care of out of bounds upwards
+        if y + h > height: 
+            y = height - h # Takes care of out of bounds downwards
+        
+    elif diff < 0: # Taller image. Increase width
+        x -= abs(diff) // 2
+        w += abs(diff)
+        if x < 0:
+            x = max(0, x)  # Takes care of out of bounds from left
+        if x + w > width: 
+            x = width - w # Takes care of out of bounds from right
+            
+    return x, y, w, h
+    
