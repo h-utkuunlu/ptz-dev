@@ -24,7 +24,7 @@ def in_detect_fn(parent):
     area_threshold = 450
 
     found = False
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(kernel_size, kernel_size))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kernel_size, kernel_size))
     res = (parent.camera.width, parent.camera.height)
 
     cv2.namedWindow("fgmask",cv2.WINDOW_NORMAL)
@@ -35,9 +35,9 @@ def in_detect_fn(parent):
         cv2.imshow("main_window",frame)
         cv2.waitKey(1)
         fgmask = parent.bg_model.apply(frame)
-        fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=3)
-        #fgmask = cv2.dilate(fgmask, kernel, iterations=4)
-        #fgmask = cv2.erode(fgmask, kernel, iterations=8)
+        fgmask = cv2.medianBlur(fgmask, 9)
+        fgmask = cv2.dilate(fgmask, kernel, iterations=5)
+
         cv2.imshow("fgmask",fgmask)
         cv2.waitKey(1)
         _, contours, _ = cv2.findContours(fgmask, cv2.RETR_LIST, cv2.CHAIN_APPROX_TC89_L1)

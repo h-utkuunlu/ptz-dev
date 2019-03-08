@@ -55,7 +55,8 @@ def real_time_evaluate(network, data):
     with torch.no_grad():
         images = data.to(device)
         outputs = network(images)
-        results = (outputs.cpu().numpy() > 0.5).astype(int)
+        probs = outputs.cpu().numpy()
+        results = (probs > 0.5).astype(int)
         
     return results
 

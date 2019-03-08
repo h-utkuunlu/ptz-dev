@@ -36,6 +36,8 @@ def async_id(parent):
         return
 
     vals = [int(a) for a in parent.drone_bbox]
+    vals = [max(0, vals[0]), max(0, vals[1]), min(1920, vals[2]), min(1080, vals[3])]
+
     x, y, w, h = expand_bbox(*vals)
 
     roi = frame[y:y+h, x:x+w].copy()
