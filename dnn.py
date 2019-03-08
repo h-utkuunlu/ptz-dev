@@ -63,9 +63,9 @@ def load_model(model_name, network, optimizer=None):
 
     state = torch.load(model_name)
 
-    network.load_state_dict(new_state['network_state'])
+    network.load_state_dict(state['network_state'])
     if optimizer is not None:
-        optimizer.load_state_dict(new_state['optimizer_state'])
+        optimizer.load_state_dict(state['optimizer_state'])
     state = None
     
     print("Model load successful")
