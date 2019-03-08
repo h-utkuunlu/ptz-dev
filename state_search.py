@@ -17,8 +17,8 @@ def in_search_fn(parent):
     while not in_pos:
         if time.time() > local_timer + 0.5:
             local_timer = time.time()
-            telemetry = parent.camera.cvreader.ReadTelemetry()
-            if telemetry[0] == pan and telemetry[2] == 1:
+            parent.telemetry = parent.camera.cvreader.ReadTelemetry()
+            if parent.telemetry[0] == pan and parent.telemetry[2] == 1:
                 in_pos = True
             else:
                 parent.camera.ptz.goto(pan,0,24)

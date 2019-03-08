@@ -1,5 +1,6 @@
 import time
 import cv2
+import numpy as np
 
 def add_padding(rect_par, ratio, dims):
     x, y, w, h = rect_par
@@ -47,19 +48,32 @@ def in_detect_fn(parent):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kernel_size, kernel_size))
     res = (parent.camera.width, parent.camera.height)
 
-    cv2.namedWindow("fgmask",cv2.WINDOW_NORMAL)
+    # cv2.namedWindow("fgmask",cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("main_window", parent.gui.mw_w*2, parent.gui.mw_h)
+    # cv2.moveWindow("fgmask",parent.gui.mw_x+parent.gui.mw_w,parent.gui.mw_y)
     while not parent.timer_expir:
         frame = parent.camera.cvreader.Read()
         if frame is None:
             continue
-        cv2.imshow("main_window",frame)
+
+        grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Make the grey scale image have three channels
+        grey_3_channel = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+
+        numpy_horizontal = np.hstack((frame, grey_3_channel))
+
+        numpy_horizontal_concat = np.concatenate((frame, grey_3_channel), axis=1)
+
+        cv2.imshow('main_window', numpy_horizontal_concat)
         cv2.waitKey(1)
+        # cv2.imshow("main_window",frame)
+        # cv2.waitKey(1)
         fgmask = parent.bg_model.apply(frame)
         fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=3)
         fgmask = cv2.dilate(fgmask, kernel, iterations=1)
         #fgmask = cv2.erode(fgmask, kernel, iterations=8)
-        cv2.imshow("fgmask",fgmask)
-        cv2.waitKey(1)
+        # cv2.imshow("fgmask",fgmask)
+        # cv2.waitKey(1)
         _, contours, _ = cv2.findContours(fgmask, cv2.RETR_LIST, cv2.CHAIN_APPROX_TC89_L1)
         
         for c in contours:

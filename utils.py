@@ -9,20 +9,20 @@ import fcntl
 import os, sys
 import errno
 import numpy as np
-
-
-#import cv2
-#import time
 import random
 from transitions import Machine, State
 from threading import Timer
-
-# from state_search import in_search_fn, out_search_fn 
-# from state_detect import in_detect_fn, out_detect_fn
-# from state_id import in_id_fn, out_id_fn
-# from state_track import in_track_fn, out_track_fn
-# from utils import *             
 from dnn import initialize_net
+
+class SensibleWindows(object):
+    def __init__(self):
+        self.mw_x=960
+        self.mw_y=0
+        self.mw_w=int(1650/3)
+        self.mw_h=int(1080/3)
+
+
+
 
 class Flow(object):
     '''
@@ -78,13 +78,14 @@ pip install transitions
         self.drone_bbox = None
         self.bg_model = None
         self.timeout_interval = 5
-
+        
         # Objects
         self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
         self.camera = Camera(PIDController(),PIDController(),PIDController())
         self.tracker = cv2.TrackerCSRT_create()
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
         self.network = initialize_net(model_path)
+        self.gui = SensibleWindows()
         
         # Initialization routine
         init_count = 0
