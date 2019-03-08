@@ -29,8 +29,7 @@ def in_search_fn(parent):
 
 def out_search_fn(parent):
     pxcnt=60
-    #parent.bg_model = cv2.bgsegm.createBackgroundSubtractorCNT(minPixelStability=pxcnt)
-    parent.bg_model = cv2.bgsegm.createBackgroundSubtractorMOG(history=pxcnt*5, nmixtures=5)
+    parent.bg_model = cv2.createBackgroundSubtractorKNN(detectShadows=False)
     init_count=0
     #cv2.namedWindow("bg model",cv2.WINDOW_NORMAL)
     while init_count < pxcnt+1:

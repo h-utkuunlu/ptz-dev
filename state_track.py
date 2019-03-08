@@ -11,7 +11,7 @@ def in_track_fn(parent):
     success = parent.tracker.init(frame, parent.drone_bbox)
 
     local_timer = time.time()
-    timeout = 5
+    timeout = 0.5
     
     while success:
         zoom = parent.camera.cvreader.ReadTelemetry()[2]
