@@ -12,17 +12,45 @@ import numpy as np
 import random
 from transitions import Machine, State
 from threading import Timer
-from dnn import initialize_net
+from dnn import initialize_net, Resize
 
 class SensibleWindows(object):
-    def __init__(self):
-        self.mw_x=960
+    def __init__(self, frame_name='main_window'):
+        factor=0.75
+        self.mw_x=0
         self.mw_y=0
-        self.mw_w=int(1650/3)
-        self.mw_h=int(1080/3)
+        self.mw_w=int(1920*factor)
+        self.mw_h=int(1080*(factor/2))
+        self.ch3_fgmask=None
+        self.async_frame=None
+        self.frame=None
+        self.frame_name = frame_name
+        self.initialized = False
+        
+    def init(self,frame):
+        h,w,ch = frame.shape
+        self.resizer = Resize(h)
+        self.ch3_fgmask = np.zeros((h,w,ch),dtype=np.uint8)
+        self.async_frame = np.zeros((h,h,ch),dtype=np.uint8)
+        self.frame = frame
+        self.initialized = True
+        self.display()
 
 
-
+    def update(self,frame=None,ch3_fgmask=None,async_frame=None):
+        if frame is not None:
+            self.frame = frame
+        if ch3_fgmask is not None:
+            self.ch3_fgmask = ch3_fgmask
+        if async_frame is not None:
+            self.async_frame=self.resizer(async_frame)
+        self.display()
+        
+    def display(self):
+        numpy_horiz_concat = np.concatenate((self.frame, self.ch3_fgmask, self.async_frame), axis=1)
+        cv2.imshow(self.frame_name, numpy_horiz_concat)
+        cv2.waitKey(1)
+       
 
 class Flow(object):
     '''

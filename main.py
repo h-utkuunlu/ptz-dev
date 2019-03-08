@@ -11,19 +11,18 @@ from state_track import in_track_fn, out_track_fn
 
 from utils import Flow
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', default=None, help='Path to model to import')
 
-
-
 if __name__ == "__main__":
-    args = parser.parse_args()
-    
+    args = parser.parse_args()            
     flow=Flow(args.model)
     flow.in_pos()
     cv2.namedWindow("main_window", cv2.WINDOW_KEEPRATIO)
     cv2.resizeWindow("main_window", flow.gui.mw_w, flow.gui.mw_h)
     cv2.moveWindow("main_window",flow.gui.mw_x,flow.gui.mw_y)
+    
     
     while True:
         if flow.is_search():
@@ -44,4 +43,4 @@ if __name__ == "__main__":
         elif flow.is_track():
             in_track_fn(flow)
             out_track_fn(flow)
-            pass
+            pass  

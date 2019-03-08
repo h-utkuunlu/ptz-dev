@@ -2,6 +2,8 @@ from threading import Timer
 import time
 import random
 import cv2
+import numpy as np
+
 
 def in_search_fn(parent):
     print('=== search')
@@ -34,10 +36,13 @@ def out_search_fn(parent):
     #cv2.namedWindow("bg model",cv2.WINDOW_NORMAL)
     while init_count < pxcnt+1:
         frame = parent.camera.cvreader.Read()
+        #cv2.imshow('frame_orig',frame)
         if frame is None:
             continue
-        cv2.imshow("main_window",frame)
-        cv2.waitKey(1)
+        if not parent.gui.initialized:
+            parent.gui.init(frame)
+        else:
+            parent.gui.update(frame=frame)
         _ = parent.bg_model.apply(frame)
         
         init_count += 1

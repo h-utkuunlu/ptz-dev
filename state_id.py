@@ -41,11 +41,8 @@ def async_id(parent):
     x, y, w, h = expand_bbox(*vals)
 
     roi = frame[y:y+h, x:x+w].copy()
+    parent.gui.update(async_frame = roi)
     
-    cv2.namedWindow("async_id", cv2.WINDOW_NORMAL)
-    cv2.imshow("async_id", roi)
-    cv2.waitKey(1)
-
     prediction = real_time_evaluate(parent.network, data_prep(roi))[0]
     if prediction == 1:
         return 1

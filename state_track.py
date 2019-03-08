@@ -31,9 +31,8 @@ def in_track_fn(parent):
         p1 = (int(x), int(y))
         p2 = (int(x + w), int(y + h))
         cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
-        cv2.imshow("main_window", cv_im)
-        cv2.waitKey(1)
-
+        parent.gui.update(frame=cv_im)
+        
         if time.time() - local_timer > timeout:
             local_timer = time.time()
             status = async_id(parent)
