@@ -771,3 +771,25 @@ class PIDController:
             self.past["integ"] = integ
 
         return pid_out
+
+def expand_bbox(x, y, w, h, width=1920, height=1080):
+    diff = w - h
+
+    if diff > 0: # Wider image. Increase height
+        y -= diff // 2
+        h += diff
+        if y < 0:
+            y = max(0, y)  # Takes care of out of bounds upwards
+        if y + h > height: 
+            y = height - h # Takes care of out of bounds downwards
+        
+    elif diff < 0: # Taller image. Increase width
+        x -= abs(diff) // 2
+        w += abs(diff)
+        if x < 0:
+            x = max(0, x)  # Takes care of out of bounds from left
+        if x + w > width: 
+            x = width - w # Takes care of out of bounds from right
+            
+    return x, y, w, h
+    
