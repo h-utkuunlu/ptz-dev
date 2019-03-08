@@ -1,5 +1,6 @@
 import time
 import cv2
+import numpy as np
 from utils import expand_bbox
 
 def add_padding(rect_par, ratio, dims):
@@ -27,19 +28,17 @@ def in_detect_fn(parent):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kernel_size, kernel_size))
     res = (parent.camera.width, parent.camera.height)
 
-    cv2.namedWindow("fgmask",cv2.WINDOW_NORMAL)
     while not parent.timer_expir:
         frame = parent.camera.cvreader.Read()
         if frame is None:
             continue
-        cv2.imshow("main_window",frame)
-        cv2.waitKey(1)
+
         fgmask = parent.bg_model.apply(frame)
         fgmask = cv2.medianBlur(fgmask, 9)
         fgmask = cv2.dilate(fgmask, kernel, iterations=5)
 
-        cv2.imshow("fgmask",fgmask)
-        cv2.waitKey(1)
+        parent.gui.update(ch3_fgmask = cv2.cvtColor(fgmask, cv2.COLOR_GRAY2BGR),frame = frame)
+
         _, contours, _ = cv2.findContours(fgmask, cv2.RETR_LIST, cv2.CHAIN_APPROX_TC89_L1)
         
         for c in contours:

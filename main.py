@@ -11,17 +11,20 @@ from state_track import in_track_fn, out_track_fn
 
 from utils import Flow
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', default=None, help='Path to model to import')
 
-if __name__ == "__main__":
 
-    args = parser.parse_args()
-    
+if __name__ == "__main__":
+    args = parser.parse_args()            
     flow=Flow(args.model)
     flow.in_pos()
-    cv2.namedWindow("main_window", cv2.WINDOW_NORMAL)
+
+    
     while True:
+        if flow.gui.ABORT: break
+            
         if flow.is_search():
             in_search_fn(flow)
             out_search_fn(flow)
@@ -41,3 +44,13 @@ if __name__ == "__main__":
             in_track_fn(flow)
             out_track_fn(flow)
             pass
+
+    print('finishing up...')
+    cv2.destroyAllWindows()
+    flow.camera.ptz.home()
+    time.sleep(2)
+    flow.camera.stop()
+    print('done.')
+
+        
+    

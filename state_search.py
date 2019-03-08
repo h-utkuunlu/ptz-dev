@@ -2,6 +2,8 @@ from threading import Timer
 import time
 import random
 import cv2
+import numpy as np
+
 
 def in_search_fn(parent):
     print('=== search')
@@ -17,8 +19,8 @@ def in_search_fn(parent):
     while not in_pos:
         if time.time() > local_timer + 0.5:
             local_timer = time.time()
-            telemetry = parent.camera.cvreader.ReadTelemetry()
-            if telemetry[0] == pan and telemetry[2] == 1:
+            parent.telemetry = parent.camera.cvreader.ReadTelemetry()
+            if parent.telemetry[0] == pan and parent.telemetry[2] == 1:
                 in_pos = True
             else:
                 parent.camera.ptz.goto(pan,0,24)
@@ -34,10 +36,13 @@ def out_search_fn(parent):
     #cv2.namedWindow("bg model",cv2.WINDOW_NORMAL)
     while init_count < pxcnt+1:
         frame = parent.camera.cvreader.Read()
+        #cv2.imshow('frame_orig',frame)
         if frame is None:
             continue
-        cv2.imshow("main_window",frame)
-        cv2.waitKey(1)
+        if not parent.gui.initialized:
+            parent.gui.init(frame)
+        else:
+            parent.gui.update(frame=frame)
         _ = parent.bg_model.apply(frame)
         
         init_count += 1

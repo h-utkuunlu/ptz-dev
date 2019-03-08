@@ -9,21 +9,63 @@ import fcntl
 import os, sys
 import errno
 import numpy as np
-
-
-#import cv2
-#import time
 import random
 from transitions import Machine, State
 from threading import Timer
+from dnn import initialize_net, Resize
 
-# from state_search import in_search_fn, out_search_fn 
-# from state_detect import in_detect_fn, out_detect_fn
-# from state_id import in_id_fn, out_id_fn
-# from state_track import in_track_fn, out_track_fn
-# from utils import *             
-from dnn import initialize_net
+class SensibleWindows(object):
+    def __init__(self, frame_name='main_window'):
+        factor=1
+        self.mw_x=0
+        self.mw_y=0
+        self.mw_w=int(1920*factor)
+        self.mw_h=int(1080*(factor/2))
+        self.ch3_fgmask=None
+        self.async_frame=None
+        self.frame=None
+        self.frame_name = frame_name
+        self.initialized = False
+        cv2.namedWindow(self.frame_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.frame_name, self.mw_w, self.mw_h)
+        cv2.moveWindow(self.frame_name,self.mw_x,self.mw_y)
+        cv2.createButton('ABORT',abort,self)
+        cv2.createButton('Reset',reset,self)
+        self.ABORT = False
+        self.RESET = False
+        
+    def init(self,frame):
+        h,w,ch = frame.shape
+        self.resizer = Resize(h)
+        self.ch3_fgmask = np.zeros((h,w,ch),dtype=np.uint8)
+        self.async_frame = np.zeros((h,h,ch),dtype=np.uint8)
+        self.frame = frame
+        self.initialized = True
+        self.display()
 
+
+    def update(self,frame=None,ch3_fgmask=None,async_frame=None):
+        if frame is not None:
+            self.frame = frame
+        if ch3_fgmask is not None:
+            self.ch3_fgmask = ch3_fgmask
+        if async_frame is not None:
+            self.async_frame=self.resizer(async_frame)
+        self.display()
+        
+        
+    def display(self):
+        numpy_horiz_concat = np.concatenate((self.frame, self.ch3_fgmask, self.async_frame), axis=1)
+        cv2.imshow(self.frame_name, numpy_horiz_concat)
+        cv2.waitKey(1)
+       
+def abort(btn_state,parent):
+    parent.ABORT=True
+    
+def reset(btn_state,parent):
+    parent.RESET=True
+
+        
 class Flow(object):
     '''
     Finite state machine for ptz aerial tracking
@@ -78,13 +120,14 @@ pip install transitions
         self.drone_bbox = None
         self.bg_model = None
         self.timeout_interval = 5
-
+        
         # Objects
         self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
         self.camera = Camera(PIDController(),PIDController(),PIDController())
         self.tracker = cv2.TrackerCSRT_create()
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
         self.network = initialize_net(model_path)
+        self.gui = SensibleWindows()
         
         # Initialization routine
         init_count = 0
