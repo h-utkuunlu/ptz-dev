@@ -6,7 +6,8 @@ import cv2
 def in_search_fn(parent):
     print('=== search')
     local_timer = time.time()
-    pan = int(random.random()*1000)+1
+    #pan = int(random.random()*1000)+1
+    pan=0
     if pan > 500:
         pan = int((pan-500)*4.894/4)
     else:

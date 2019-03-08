@@ -11,13 +11,14 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils, models
+from copy import deepcopy
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
 def initialize_net(model_path):
-    network = models.resnet50(pretrained=False)
+    network = models.resnet50(pretrained=True)
     for param in network.parameters():
-        param.requires_grad = False
+       param.requires_grad = False
 
     num_ftrs = network.fc.in_features
     network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
@@ -72,7 +73,9 @@ class PrepareRTImage(object):
                 interpolation = cv2.INTER_CUBIC
             else:
                 interpolation = cv2.INTER_AREA
-
+        else:
+            return image
+        
         image = cv2.resize(image, (self.size, self.size), interpolation=interpolation)
         return image
     
@@ -92,10 +95,14 @@ def real_time_evaluate(network, data):
 def load_model(model_name, network, optimizer=None):
 
     state = torch.load(model_name)
+    new_state = deepcopy(state)
+    
+    for i in state['network_state'].keys():
+        new_state['network_state'][i.replace('module.', '', 1)] = new_state['network_state'].pop(i)
 
-    network.load_state_dict(state['network_state'])
+    network.load_state_dict(new_state['network_state'])
     if optimizer is not None:
-        optimizer.load_state_dict(state['optimizer_state'])
+        optimizer.load_state_dict(new_state['optimizer_state'])
     state = None
     
     print("Model load successful")

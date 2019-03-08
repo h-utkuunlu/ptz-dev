@@ -48,9 +48,9 @@ def move(parent, zoom):
     x, y, w, h = parent.drone_bbox
     center = (x + w/2, y + h/2)
     pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
-    zoom_error = parent.camera.error_zoom((w+h)/2, parent.camera.height)
-    parent.camera.control(pan_error=pan_error/zoom, tilt_error=tilt_error/zoom)
-    parent.camera.control_zoom(zoom_error/zoom)
+    zoom_error = parent.camera.error_zoom(max(w, h), parent.camera.height)
+    parent.camera.control(pan_error=pan_error, tilt_error=tilt_error)
+    parent.camera.control_zoom(zoom_error)
     return (x,y,w,h)
 
 def out_track_fn(parent):

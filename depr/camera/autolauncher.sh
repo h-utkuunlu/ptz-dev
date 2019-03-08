@@ -1,14 +1,15 @@
 #! /bin/bash
 
 
-if mount | grep /media/dc/virt > /dev/null; then
-    echo 'drive mounted'
-else
-    sudo mount /dev/sda6 /media/dc/virt
-fi
+#if mount | grep  > /dev/null; then
+#    echo 'drive mounted'
+#else
+#    sudo mount /dev/sda6 /media/dc/virt
+#fi
 filename=$(date +%d-%m-%Y_%H-%M-%S)
-echo "/media/dc/virt/$filename.avi"
+path="$HOME/workspace/datasets/video/$filename.avi"
 
-source activate tx2
-python record_video.py /media/dc/virt/$filename.avi -u 2
-source deactivate
+source activate ptz
+echo $path
+python record_video.py $path -u 0
+conda deactivate

@@ -12,6 +12,7 @@ def in_id_fn(parent):
 
     drone = False
     predictions = real_time_evaluate(parent.network, data_prep(parent.cur_imgs))
+    #print(predictions)
     for iter, pred in enumerate(predictions):
         if pred == 1:
             parent.drone_bbox = parent.cur_bboxes[iter]

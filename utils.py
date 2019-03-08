@@ -115,7 +115,7 @@ class Camera:
 
     @staticmethod
     def error_zoom(size, height):
-        target_size = float(height)/3.0  # no specific reason for 3
+        target_size = float(height)/10.0  # no specific reason for 8 factor
         return (target_size - size)/30  # no specific reason for 30
 
 

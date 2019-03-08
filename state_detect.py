@@ -66,9 +66,12 @@ def in_detect_fn(parent):
             if cv2.contourArea(c) > area_threshold:
                 found = True
                 rect_par = cv2.boundingRect(c)
+                x, y, w, h = add_padding(rect_par, padding_ratio, res)
+                parent.cur_bboxes.append((x, y, w, h))
+
                 x, y, w, h = expand_bbox(*add_padding(rect_par, padding_ratio, res))
                 parent.cur_imgs.append(frame[y:y+h, x:x+w])
-                parent.cur_bboxes.append((x, y, w, h))
+                #parent.cur_bboxes.append((x, y, w, h))
                 
         if found:
             parent.found_obj()
