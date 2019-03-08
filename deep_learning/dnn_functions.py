@@ -133,89 +133,31 @@ def evaluate(network, loader):
             tmp_outputs = (np.squeeze(outputs.cpu().numpy()) > 0.5).astype(int)
             predictions = np.append(predictions, tmp_outputs)
             
-            '''
-            print(outputs_np)            
-            print(predictions)
-            print(targets_np)
-
-            print(outputs_np.shape)            
-            print(predictions.shape)
-            print(targets_np.shape)
-            
-            total += predictions.shape[0]
-            correct += np.sum(predictions == targets_np)
-            actual_drones += np.sum(targets_np) # for recall
-            predicted_drones += np.sum(predictions)
-            true_pos += np.sum(predictions & targets_np)
-     
-            '''
-    '''
-    #accuracy = 100.0 * (correct / total)
-
-    if predicted_drones == 0:
-        precision = 0
-    else:
-        precision = 100.0 * (true_pos / predicted_drones)
-
-    if actual_drones == 0:
-        recall = 0
-    else:
-        recall = 100.0 * (true_pos / actual_drones)
-    '''
-
     return {'predictions': predictions, 'ground_truth': ground_truth}
 
-def timed_evaluate(network, loader, gui=False):
+def iterative_evaluate(network, loader):
 
-    durations = []
-    total = 0
-    correct = 0
-    
-    if gui:
-        cv2.namedWindow("show_batch")
+    predictions, ground_truth = np.array([]), np.array([])
+    cv2.namedWindow("eval", cv2.WINDOW_NORMAL)
     
     with torch.no_grad():
         network.eval()
         
         for i, sample in enumerate(loader):
+
             images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
-            batch_size = images.size(0)
-            total += targets.size(0)
-            
-            threshold = torch.Tensor([0.5]).to(device)
-
-            start = time.time()
             outputs = network(images)
-            predictions = outputs > threshold
-
-            duration = time.time() - start
-            durations.append(duration)
-
-            correct += (predictions == targets.byte()).sum().item()
             
-            #for i in range(batch_size):
-                
-            #    img = images[i].permute(1, 2, 0).numpy()
-            #    print(img.shape)
+            ground_truth = np.append(ground_truth, np.array(sample['targets']))
 
+            tmp_outputs = (np.squeeze(outputs.cpu().numpy()) > 0.5).astype(int)
+            predictions = np.append(predictions, tmp_outputs)
+
+            print("Out: %.3f, Pred: %d, GT: %d" % (outputs.cpu().numpy()[0], (outputs.cpu().numpy()[0] > 0.5).astype(int), sample['targets']))
+
+            time.sleep(1)
             
-            hcatim = [images[i].permute(1, 2, 0).numpy() for i in range(batch_size)]
-            hcatim = np.hstack(hcatim)
-            print(hcatim.shape)
-            #exit()
-
-            print("Duration: ", duration)
-            print(predictions)
-
-            if gui:
-                cv2.imshow("show_batch", hcatim)
-                if cv2.waitKey(0) & 0xFF == ord('q'):
-                    break
-    
-    accuracy = (correct / total) * 100.0
-            
-    return {'accuracy': accuracy}
-
+    return {'predictions': predictions, 'ground_truth': ground_truth}
 
 def denormalize(output, stats):
     values = [output.data[0][i].item() for i in range(5)]
@@ -426,7 +368,7 @@ class ToTensor(object):
         image = image.transpose((2, 0, 1))
 
         return {'image': torch.tensor(image, dtype=torch.float), 'targets': torch.tensor(targets, dtype=torch.float)}
-    
+
 class DroneDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir

@@ -3,7 +3,8 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torchvision import transforms, utils, models
 from torch.utils.data import DataLoader
-import model
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+
 import dnn_functions as dnn
 import argparse
 import os
@@ -25,24 +26,42 @@ parser.add_argument('-s', '--stats', default='stats', help='.csv file that store
 parser.add_argument('-w', '--workers', default=1, help='Number of workers for batch processing', type=int)
 args = parser.parse_args()
 
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+val_stats = dnn.read_stats(args.dataloc + "val/stats")
 
-test_stats = dnn.read_stats(args.dataloc + "test/stats")
-test_dataset = dnn.DroneDataset(root_dir=args.dataloc + "test/", transform=transforms.Compose([ dnn.RandomCrop(224), dnn.Normalize(test_stats), dnn.ToTensor()]))
-test_loader = DataLoader(test_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
+val_dataset = dnn.DroneDataset(root_dir=args.dataloc + "val/", transform=transforms.Compose([ dnn.Resize(224), dnn.Normalize(val_stats), dnn.ToTensor()]))
+val_loader = DataLoader(val_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
-# Pretrained
-network = models.resnet152(pretrained=True)
-for param in network.parameters():
-    param.requires_grad = False
+network = models.resnet50(pretrained=True)
+
+#for param in network.parameters():
+#    param.requires_grad = False
 
 num_ftrs = network.fc.in_features
 network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-network = network.to(device)
+network = torch.nn.DataParallel(network).to(device)
 
 print("Model created")
-#dnn.load_model(args.open, network)
 
-## Start Evaluating
-acc = dnn.timed_evaluate(network, test_loader, gui=True)
-print("Overall accuracy:", acc)
+model_name = args.open
+if model_name is None:
+    print("Enter a model name")
+    exit()
+    
+dnn.load_model(model_name, network)
+
+if args.batch == 1:
+    results = dnn.iterative_evaluate(network, val_loader)
+else:
+    results = dnn.evaluate(network, val_loader)
+    
+print(results['ground_truth'][:25])
+print(results['predictions'][:25])
+
+accuracy = accuracy_score(results['ground_truth'], results['predictions'])
+precision = precision_score(results['ground_truth'], results['predictions'])
+recall = recall_score(results['ground_truth'], results['predictions'])
+
+out_string = 'Acc: %.3f Prc: %.3f Rec: %.3f' % (accuracy, precision, recall)
+print(out_string)
