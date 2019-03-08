@@ -21,13 +21,13 @@ def initialize_net(model_path):
 
     num_ftrs = network.fc.in_features
     network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
-    network.eval()
-
     network = network.to(device)
 
     if model_path is not None:
         load_model(model_path, network)
-
+        
+    network.eval()
+        
     # Run random sequences to initialize
     placeholder = torch.rand((400, 3, 224, 224)).to(device)
     for i in range(5):
