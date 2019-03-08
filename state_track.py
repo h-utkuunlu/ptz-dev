@@ -3,7 +3,7 @@ import argparse
 import time
 import cv2
 from state_id import async_id
-
+import numpy as np
 def in_track_fn(parent):
     print('=== tracking')
 
@@ -49,9 +49,14 @@ def move(parent, zoom):
     center = (x + w/2, y + h/2)
     pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
     zoom_error = parent.camera.error_zoom(max(w, h), parent.camera.height)
-    parent.camera.control(pan_error=pan_error, tilt_error=tilt_error)
+    parent.camera.control(pan_error=pan_error/scale_factor(zoom), tilt_error=tilt_error/scale_factor(zoom))
     parent.camera.control_zoom(zoom_error)
     return (x,y,w,h)
+    
+def scale_factor(zoom_factor):
+    zoom_value = (zoom_factor-1)*862.32
+    factor = 0.1214*np.exp(318.16*10**(-6)*zoom_value) + 1.0605
+    return factor
 
 def out_track_fn(parent):
     print('lost_track')

@@ -203,7 +203,7 @@ class Camera:
 
     @staticmethod
     def error_zoom(size, height):
-        target_size = float(height)/10.0  # no specific reason for 8 factor
+        target_size = float(height)/5.0  # no specific reason for 8 factor
         return (target_size - size)/30  # no specific reason for 30
 
 
@@ -277,6 +277,8 @@ class CameraReaderAsync:
         self.__stopRequested = False
         self.__validFrame = False
         self.__zoom = 0
+        self.__pan = 0
+        self.__tilt = 0
         self.fps = CameraReaderAsync.WeightedFramerateCounter()
         Thread(target=self.__ReadFrameAsync).start()
         Thread(target=self.__ReadTelemetryAsync).start()
