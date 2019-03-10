@@ -7,7 +7,7 @@ import numpy as np
 def in_track_fn(parent):
     print('=== tracking')
 
-    frame = parent.camera.cvreader.Read()
+    frame = parent.gui.frame
     success = parent.tracker.init(frame, parent.drone_bbox)
 
     local_timer = time.time()
