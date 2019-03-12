@@ -257,6 +257,39 @@ class Resize(object):
                 
         return {'image':image, 'targets':targets}
 
+class FlipHzt(object):
+
+    def __init__(self, prob):
+        self.prob = prob
+
+    def __call__(self, sample):
+
+        image, target = sample['image'], sample['targets']
+        if random.random() > self.prob:
+            pass
+        else:
+            image = cv2.flip(image, 1)
+
+        return {'image': image, 'targets': target}
+
+class Rotate(object):
+
+    def __init__(self, max_abs_angle, prob):
+        self.max_abs_angle = max_abs_angle
+        self.prob = prob
+        
+    def __call__(self, sample):
+
+        image, target = sample['image'], sample['targets']
+        if random.random() > self.prob:
+            pass
+        else:
+            image_center = tuple(np.array(image.shape[1::-1]) / 2)
+            angle = random.uniform(-self.max_abs_angle, self.max_abs_angle)
+            rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+            image = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+        return {'image': image, 'targets': target}
     
 class Corrupt(object):
     def __init__(self, prob):
@@ -316,6 +349,25 @@ class Corrupt(object):
         occluded[y:y+h, x:x+w] = occlusion
 
         return occluded             
+
+class ContrastBrightness(object):
+
+    def __init__(self, max_alpha, max_beta, prob):
+        self.max_alpha = max_alpha 
+        self.max_beta = max_beta 
+        self.prob = prob
+
+    def __call__(self, sample):
+        image, target = sample['image'], sample['targets']
+        if random.random() > self.prob:
+            pass
+        else:
+            alpha = random.uniform(1.0, self.max_alpha)
+            beta = random.randint(0, self.max_beta)
+            image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+
+        return {'image': image, 'targets': targets}
+
     
 class ToTensor(object):
 

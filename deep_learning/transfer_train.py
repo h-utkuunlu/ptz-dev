@@ -28,7 +28,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 training_stats = dnn.read_stats(args.dataloc + "train/stats")
 val_stats = dnn.read_stats(args.dataloc + "val/stats")
 
-train_dataset = dnn.DroneDataset(root_dir=args.dataloc + "train/", transform=transforms.Compose([ dnn.Resize(224), dnn.Corrupt(0.4), dnn.Normalize(training_stats), dnn.ToTensor()]))
+train_dataset = dnn.DroneDataset(root_dir=args.dataloc + "train/", transform=transforms.Compose([ dnn.Resize(300), dnn.Corrupt(0.2), dnn.FlipHzt(0.2), dnn.ContrastBrightness(3.0, 100, 0.2), dnn.Rotate(50.0, 0.2), dnn.RandomCrop(224), dnn.Normalize(training_stats), dnn.ToTensor()]))
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
 val_dataset = dnn.DroneDataset(root_dir=args.dataloc + "val/", transform=transforms.Compose([ dnn.Resize(224), dnn.Normalize(val_stats), dnn.ToTensor()]))
@@ -44,6 +44,7 @@ network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
 network = torch.nn.DataParallel(network).to(device)
 
 optimizer = torch.optim.Adam(network.parameters(), lr=args.lr)
+sched_optimizer = lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
 criterion = nn.BCELoss()
 
 print("Model created")
@@ -75,7 +76,7 @@ start = time.time()
 ## Start Training
 for iter in range(1, args.epochs+1):
 
-    epoch_loss = dnn.train_epoch(network, criterion, optimizer, train_loader)
+    epoch_loss = dnn.train_epoch(network, criterion, sched_optimizer, train_loader)
     results = dnn.evaluate(network, val_loader)
     
     accuracy = accuracy_score(results['ground_truth'], results['predictions'])
