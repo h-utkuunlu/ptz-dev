@@ -1,6 +1,6 @@
 from threading import Thread
 from threading import Lock
-from time import sleep, time
+from time import sleep, time, strftime
 import cv2
 import re
 import binascii
@@ -14,6 +14,40 @@ from transitions import Machine, State
 from threading import Timer
 from dnn import initialize_net, Resize
 
+class TelemetryLogger(object):
+    def __init__(self, parent, filename=None):
+        if filename is None:
+            timestamp = strftime("%d-%m-%Y_%H-%M-%S")
+            logname = "./flight_logs/" + timestamp + ".log"
+            self.filename = logname
+        else:
+            self.filename = filename
+
+        print(self.filename)
+        self.parent = parent
+        self.logfile = open(self.filename, 'w')
+        self.logfile.write("time,cam_pan,cam_tilt,cam_zoom,obj_x,obj_y\n")
+        self.start_time = time()
+        
+    def close(self):
+        self.logfile.close()
+        pass
+    
+    def log(self):
+        telemetry = self.parent.camera.cvreader.ReadTelemetry()
+        # frame[y:y+h, x:x+w]
+        if self.parent.drone_bbox is not None:
+            x, y, w, h = self.parent.drone_bbox 
+            obj_x = x + w//2
+            obj_y = y + h//2
+        else:
+            obj_x = -1
+            obj_y = -1
+            
+        out = "%.3f,%d,%d,%d,%d,%d\n" %(time() - self.start_time, *telemetry, obj_x, obj_y)
+        #print(out)
+        self.logfile.write(out)
+        
 class SensibleWindows(object):
     def __init__(self, frame_name='main_window'):
         factor=1
@@ -128,18 +162,16 @@ pip install transitions
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
         self.network = initialize_net(model_path)
         self.gui = SensibleWindows()
+        self.logger = TelemetryLogger(self)
         
         # Initialization routine
         init_count = 0
         while init_count < 5:
             _ = self.camera.cvreader.Read()
             init_count += 1
-
             
     def expiry(self):
         self.timer_expir = True    
-
-
 
 class Camera:
 
@@ -168,6 +200,7 @@ class Camera:
         self.cvreader.Stop()
         self.cvcamera.release()
         self.ptz.end()
+        self.logger.close()
 
     def control(self, pan_error, tilt_error):
 

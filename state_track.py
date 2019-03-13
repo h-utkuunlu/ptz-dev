@@ -41,6 +41,10 @@ def in_track_fn(parent):
         if parent.gui.RESET or parent.gui.ABORT:
             parent.gui.RESET = False
             break
+
+        #Log
+        parent.logger.log()
+        
     parent.lost_track()
 
 def move(parent, zoom):
