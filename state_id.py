@@ -32,6 +32,7 @@ def out_id_fn(parent):
 def async_id(parent):
     
     frame = parent.camera.cvreader.Read()
+    parent.logger.vout.write(frame) # logger video out
     if frame is None:
         return
 

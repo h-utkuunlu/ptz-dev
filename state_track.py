@@ -32,7 +32,7 @@ def in_track_fn(parent):
         p2 = (int(x + w), int(y + h))
         cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
         parent.gui.update(frame=cv_im)
-        
+        parent.logger.vout.write(cv_im) # logger video out
         if time.time() - local_timer > timeout:
             local_timer = time.time()
             status = async_id(parent)
@@ -44,7 +44,7 @@ def in_track_fn(parent):
 
         #Log
         parent.logger.log()
-        
+    
     parent.lost_track()
 
 def move(parent, zoom):

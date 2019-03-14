@@ -56,7 +56,7 @@ def real_time_evaluate(network, data):
         images = data.to(device)
         outputs = network(images)
         probs = outputs.cpu().numpy()
-        results = (probs > 0.5).astype(int)
+        results = (probs > 0.85).astype(int)
         
     return results
 

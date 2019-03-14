@@ -22,7 +22,9 @@ class TelemetryLogger(object):
             self.filename = logname
         else:
             self.filename = filename
-
+        
+        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.vout =  cv2.VideoWriter('.'+self.filename.split('.')[1]+'.avi', self.fourcc, 30.0, (parent.camera.width, parent.camera.height))
         print(self.filename)
         self.parent = parent
         self.logfile = open(self.filename, 'w')
@@ -200,7 +202,6 @@ class Camera:
         self.cvreader.Stop()
         self.cvcamera.release()
         self.ptz.end()
-        self.logger.close()
 
     def control(self, pan_error, tilt_error):
 
