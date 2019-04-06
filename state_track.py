@@ -12,6 +12,8 @@ def in_track_fn(parent):
 
     local_timer = time.time()
     timeout = 0.5
+    estimated_drone_prob = 1.0
+    alpha = 0.125  # param value influences exponential weighted moving average
     
     while success:
         zoom = parent.camera.cvreader.ReadTelemetry()[2]
@@ -36,7 +38,10 @@ def in_track_fn(parent):
         if time.time() - local_timer > timeout:
             local_timer = time.time()
             status = async_id(parent)
-            if status != 1:
+            
+            # exponential weighted moving average
+            estimated_drone_prob = (1-alpha) * estimated_drone_prob + alpha*status
+            if estimated_drone_prob < 0.5:
                 break
         if parent.gui.RESET or parent.gui.ABORT:
             parent.gui.RESET = False
