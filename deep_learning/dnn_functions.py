@@ -66,7 +66,7 @@ def train_epoch(network, criterion, optimizer, loader):
     epoch_loss = 0
     for batch_idx, sample in enumerate(loader):
             
-        images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
+        images, targets = sample['image'].to(device), sample['target'].unsqueeze(1).to(device)
         optimizer.zero_grad()
 
         outputs = network(images)
@@ -90,7 +90,7 @@ def train(args, network, optimizer, loader):
         epoch_loss = 0
         for batch_idx, sample in enumerate(loader):
             
-            images, targets = sample['image'].to(device), sample['targets'].to(device)
+            images, targets = sample['image'].to(device), sample['target'].to(device)
             optimizer.zero_grad()
 
             outputs = network(images)
@@ -114,10 +114,10 @@ def evaluate(network, loader):
         network.eval()
         
         for i, sample in enumerate(loader):
-            images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
+            images, targets = sample['image'].to(device), sample['target'].unsqueeze(1).to(device)
             outputs = network(images)
 
-            ground_truth = np.append(ground_truth, np.array(sample['targets']))
+            ground_truth = np.append(ground_truth, np.array(sample['target']))
 
             tmp_outputs = (np.squeeze(outputs.cpu().numpy()) > 0.5).astype(int)
             predictions = np.append(predictions, tmp_outputs)
@@ -134,15 +134,15 @@ def iterative_evaluate(network, loader):
         
         for i, sample in enumerate(loader):
 
-            images, targets = sample['image'].to(device), sample['targets'].unsqueeze(1).to(device)
+            images, targets = sample['image'].to(device), sample['target'].unsqueeze(1).to(device)
             outputs = network(images)
             
-            ground_truth = np.append(ground_truth, np.array(sample['targets']))
+            ground_truth = np.append(ground_truth, np.array(sample['target']))
 
             tmp_outputs = (np.squeeze(outputs.cpu().numpy()) > 0.5).astype(int)
             predictions = np.append(predictions, tmp_outputs)
 
-            print("Out: %.3f, Pred: %d, GT: %d" % (outputs.cpu().numpy()[0], (outputs.cpu().numpy()[0] > 0.5).astype(int), sample['targets']))
+            print("Out: %.3f, Pred: %d, GT: %d" % (outputs.cpu().numpy()[0], (outputs.cpu().numpy()[0] > 0.5).astype(int), sample['target']))
 
             time.sleep(1)
             
@@ -198,37 +198,19 @@ class Normalize(object):
 
     def __call__(self, sample):
 
-        image, targets = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
 
         norm_image = ( np.asarray(image, dtype=float) - np.asarray( self.stats["img_mean"], dtype=float).reshape(1, 1, 3) ) / np.asarray(self.stats["img_std"], dtype=float).reshape(1, 1, 3)
 
 
-        return {'image': norm_image, 'targets': targets}
-
-class Scale(object):
-    def __init__(self, factor):
-        self.factor = factor
-
-    def __call__(self, sample):
-        image, targets = sample['image'], sample['targets']
-        
-        if self.factor > 1.0:
-            interpolation = cv2.INTER_CUBIC
-        else:
-            interpolation = cv2.INTER_AREA
-
-        image = cv2.resize(image, None, fx=self.factor, fy=self.factor, interpolation=interpolation)
-        r, c, w, h = [int(targets[i]*self.factor) for i in range(1, 5)]
-        targets = [targets[0], r, c, w, h]
-        
-        return {'image':image, 'targets':targets}
+        return {'image': norm_image, 'target': target}
 
 class RandomCrop(object):
     def __init__(self, size):
         self.size = (size, size)
 
     def __call__(self, sample):
-        image, targets = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         h, w = image.shape[:2]
         new_h, new_w = self.size
 
@@ -239,14 +221,14 @@ class RandomCrop(object):
 
         image = image[top:top+new_h, left:left+new_h]
 
-        return {'image': image, 'targets':targets}
+        return {'image': image, 'target':target}
 
 class Resize(object):
     def __init__(self, size):
         self.size = size
 
     def __call__(self, sample):
-        image, targets = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         
         if self.size > image.shape[0]:
             interpolation = cv2.INTER_CUBIC
@@ -255,7 +237,7 @@ class Resize(object):
 
         image = cv2.resize(image, (self.size, self.size), interpolation=interpolation)
                 
-        return {'image':image, 'targets':targets}
+        return {'image':image, 'target':target}
 
 class FlipHzt(object):
 
@@ -264,13 +246,13 @@ class FlipHzt(object):
 
     def __call__(self, sample):
 
-        image, target = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         if random.random() > self.prob:
             pass
         else:
             image = cv2.flip(image, 1)
 
-        return {'image': image, 'targets': target}
+        return {'image': image, 'target': target}
 
 class Rotate(object):
 
@@ -280,7 +262,7 @@ class Rotate(object):
         
     def __call__(self, sample):
 
-        image, target = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         if random.random() > self.prob:
             pass
         else:
@@ -289,16 +271,16 @@ class Rotate(object):
             rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
             image = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
-        return {'image': image, 'targets': target}
+        return {'image': image, 'target': target}
     
 class Corrupt(object):
     def __init__(self, prob):
         self.prob = prob
 
     def __call__(self, sample):
-        image, targets = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         if np.random.random() > self.prob:
-            return {'image': image, 'targets': targets}
+            return {'image': image, 'target': target}
 
         else:
             corruptions = ["agbn", "occlusion"] # agbn: additive gaussian + bias
@@ -310,7 +292,7 @@ class Corrupt(object):
             elif chosen == "occlusion":
                 image = self.occlude(image)
 
-            return {'image': image, 'targets': targets}
+            return {'image': image, 'target': target}
             
     @staticmethod
     def gaussianNoise(image):
@@ -358,7 +340,7 @@ class ContrastBrightness(object):
         self.prob = prob
 
     def __call__(self, sample):
-        image, target = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         if random.random() > self.prob:
             pass
         else:
@@ -366,16 +348,16 @@ class ContrastBrightness(object):
             beta = random.randint(0, self.max_beta)
             image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
-        return {'image': image, 'targets': targets}
+        return {'image': image, 'target': target}
 
     
 class ToTensor(object):
 
     def __call__(self, sample):
-        image, targets = sample['image'], sample['targets']
+        image, target = sample['image'], sample['target']
         image = image.transpose((2, 0, 1))
 
-        return {'image': torch.tensor(image, dtype=torch.float), 'targets': torch.tensor(targets, dtype=torch.float)}
+        return {'image': torch.tensor(image, dtype=torch.float), 'target': torch.tensor(target, dtype=torch.float)}
 
 class DroneDataset(Dataset):
     def __init__(self, root_dir, transform=None):
@@ -388,9 +370,9 @@ class DroneDataset(Dataset):
 
     def __getitem__(self, idx):
         #print(self.root_dir + self.drone_data[idx][0])
-        image, targets = cv2.imread(self.root_dir + self.drone_data[idx][0], -1), self.drone_data[idx][1]
+        image, target = cv2.imread(self.root_dir + self.drone_data[idx][0], -1), self.drone_data[idx][1]
 
-        sample = {'image': image, 'targets': targets}
+        sample = {'image': image, 'target': target}
 
         if self.transform:
             sample = self.transform(sample)
