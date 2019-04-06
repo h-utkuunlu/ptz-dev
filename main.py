@@ -50,6 +50,8 @@ if __name__ == "__main__":
     flow.camera.ptz.home()
     time.sleep(2)
     flow.camera.stop()
+    flow.logger.close()
+    #flow.logger.vout.release()  # logger video out
     print('done.')
 
         

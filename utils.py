@@ -1,6 +1,6 @@
 from threading import Thread
 from threading import Lock
-from time import sleep, time
+from time import sleep, time, strftime
 import cv2
 import re
 import binascii
@@ -13,7 +13,47 @@ import random
 from transitions import Machine, State
 from threading import Timer
 from dnn import initialize_net, Resize
+import rospy
+from std_msgs.msg import String
 
+class TelemetryLogger(object):
+    def __init__(self, parent, filename=None):
+        if filename is None:
+            timestamp = strftime("%d-%m-%Y_%H-%M-%S")
+            logname = "./flight_logs/" + timestamp + ".log"
+            self.filename = logname
+        else:
+            self.filename = filename
+        
+        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.vout =  cv2.VideoWriter('.'+self.filename.split('.')[1]+'.avi', self.fourcc, 30.0, (parent.camera.width, parent.camera.height))
+        print(self.filename)
+        self.parent = parent
+        self.logfile = open(self.filename, 'w')
+        self.logfile.write("time,cam_pan,cam_tilt,cam_zoom,obj_x,obj_y\n")
+        self.start_time = time()
+        
+        
+    def close(self):
+        self.logfile.close()
+        pass
+    
+    def log(self):
+        telemetry = self.parent.camera.cvreader.ReadTelemetry()
+        # frame[y:y+h, x:x+w]
+        if self.parent.drone_bbox is not None:
+            x, y, w, h = self.parent.drone_bbox 
+            obj_x = x + w//2
+            obj_y = y + h//2
+        else:
+            obj_x = -1
+            obj_y = -1
+            
+        out = "%.3f,%d,%d,%d,%d,%d\n" %(time() - self.start_time, *telemetry, obj_x, obj_y)
+        
+        
+        self.logfile.write(out)
+        
 class SensibleWindows(object):
     def __init__(self, frame_name='main_window'):
         factor=1
@@ -128,18 +168,16 @@ pip install transitions
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
         self.network = initialize_net(model_path)
         self.gui = SensibleWindows()
+        self.logger = TelemetryLogger(self)
         
         # Initialization routine
         init_count = 0
         while init_count < 5:
             _ = self.camera.cvreader.Read()
             init_count += 1
-
             
     def expiry(self):
         self.timer_expir = True    
-
-
 
 class Camera:
 
@@ -256,7 +294,7 @@ class CameraReaderAsync:
         smoothing = 0.95
         startTime = 0
         framerate = 0
-
+        
         def start(self):
             self.startTime = time()
             self.framerate = 0
@@ -278,8 +316,10 @@ class CameraReaderAsync:
         self.__telemetry_lock = Lock()
         self.__source = videoSource
         self.__ptz = ptz
+        self.pub = rospy.Publisher('telemetry', String, queue_size=10)
+        rospy.init_node('logger', anonymous=True)
         self.Start()
-
+        
     def __ReadFrameAsync(self):
         while True:
             if self.__stopRequested:
@@ -310,6 +350,12 @@ class CameraReaderAsync:
                     self.__zoom = (zoom/862.32)+1
                     self.__pan = pan
                     self.__tilt = tilt
+
+                    # ROS logger
+                    out = "{},{},{}".format(pan, tilt, zoom)
+                    # rospy.loginfo(out)
+                    self.pub.publish(out)
+                        
                 finally:
                     self.__telemetry_lock.release()
             sleep(0.01)

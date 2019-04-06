@@ -44,7 +44,7 @@ def out_search_fn(parent):
         else:
             parent.gui.update(frame=frame)
         _ = parent.bg_model.apply(frame)
-        
+        parent.logger.vout.write(frame) # logger video out
         init_count += 1
     #bg_img = parent.bg_model.getBackgroundImage()
     #cv2.imshow("bg model", bg_img)

@@ -2,5 +2,6 @@
 __pycache__*
 saved_models*
 training_logs*
+flight_logs
 datasets*
 *.pyc

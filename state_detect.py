@@ -30,6 +30,7 @@ def in_detect_fn(parent):
 
     while not parent.timer_expir:
         frame = parent.camera.cvreader.Read()
+        parent.logger.vout.write(frame) # logger video out
         if frame is None:
             continue
 
