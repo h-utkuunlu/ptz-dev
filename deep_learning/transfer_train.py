@@ -18,6 +18,7 @@ parser.add_argument('-o', '--open', default=None, help='Open the specified model
 parser.add_argument('-b', '--batch', default=5, help='Specified batch size for training', type=int) 
 parser.add_argument('-e', '--epochs', default=30, help='Number of epochs to train', type=int)
 parser.add_argument('-l', '--lr', default=1e-5, help='Learning rate set for the optimizer', type=float)
+parser.add_argument('-m', '--momentum', default=0.9, help='Momentum set for the optimizer', type=float)
 parser.add_argument('-L', '--logdir', default="training_logs/", help="Folder where the training logs are saved")
 parser.add_argument('-r', '--saverate', default=5, help='The interval to save model states', type=int)
 parser.add_argument('-w', '--workers', default=4, help='Number of workers for batch processing', type=int)
@@ -28,7 +29,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 training_stats = dnn.read_stats(args.dataloc + "train/stats")
 val_stats = dnn.read_stats(args.dataloc + "val/stats")
 
-train_dataset = dnn.DroneDataset(root_dir=args.dataloc + "train/", transform=transforms.Compose([ dnn.Resize(224), dnn.Corrupt(0.4), dnn.Normalize(training_stats), dnn.ToTensor()]))
+train_dataset = dnn.DroneDataset(root_dir=args.dataloc + "train/", transform=transforms.Compose([ dnn.Resize(300), dnn.Corrupt(0.2), dnn.FlipHzt(0.1), dnn.ContrastBrightness(3.0, 100, 0.1), dnn.Rotate(50.0, 0.1), dnn.RandomCrop(224), dnn.Normalize(training_stats), dnn.ToTensor()]))
 train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True, num_workers=args.workers)
 
 val_dataset = dnn.DroneDataset(root_dir=args.dataloc + "val/", transform=transforms.Compose([ dnn.Resize(224), dnn.Normalize(val_stats), dnn.ToTensor()]))
@@ -43,14 +44,16 @@ num_ftrs = network.fc.in_features
 network.fc = nn.Sequential(nn.Linear(num_ftrs, 1), nn.Sigmoid())
 network = torch.nn.DataParallel(network).to(device)
 
-optimizer = torch.optim.Adam(network.parameters(), lr=args.lr)
+#optimizer = torch.optim.Adam(network.parameters(), lr=args.lr)
+optimizer = torch.optim.SGD(network.parameters(), lr=args.lr, momentum=args.momentum)
+#sched_optimizer = lr_scheduler.ReduceLROnPlateau(optimizer, verbose=True)
 criterion = nn.BCELoss()
 
 print("Model created")
 
 model_name = args.open
 if model_name is not None:
-    dnn.load_model(model_name, network, optimizer)
+    dnn.load_model(model_name, network) #, optimizer)
 
 ## Create log file
 timestamp = time.strftime("%d-%m-%Y_%H-%M-%S")
@@ -77,6 +80,8 @@ for iter in range(1, args.epochs+1):
 
     epoch_loss = dnn.train_epoch(network, criterion, optimizer, train_loader)
     results = dnn.evaluate(network, val_loader)
+
+    #sched_optimizer.step(epoch_loss)
     
     accuracy = accuracy_score(results['ground_truth'], results['predictions'])
     precision = precision_score(results['ground_truth'], results['predictions'])
