@@ -13,6 +13,8 @@ import random
 from transitions import Machine, State
 from threading import Timer
 from dnn import initialize_net, Resize
+import rospy
+from std_msgs.msg import String
 
 class TelemetryLogger(object):
     def __init__(self, parent, filename=None):
@@ -31,6 +33,7 @@ class TelemetryLogger(object):
         self.logfile.write("time,cam_pan,cam_tilt,cam_zoom,obj_x,obj_y\n")
         self.start_time = time()
         
+        
     def close(self):
         self.logfile.close()
         pass
@@ -47,7 +50,8 @@ class TelemetryLogger(object):
             obj_y = -1
             
         out = "%.3f,%d,%d,%d,%d,%d\n" %(time() - self.start_time, *telemetry, obj_x, obj_y)
-        #print(out)
+        
+        
         self.logfile.write(out)
         
 class SensibleWindows(object):
@@ -290,7 +294,7 @@ class CameraReaderAsync:
         smoothing = 0.95
         startTime = 0
         framerate = 0
-
+        
         def start(self):
             self.startTime = time()
             self.framerate = 0
@@ -312,8 +316,10 @@ class CameraReaderAsync:
         self.__telemetry_lock = Lock()
         self.__source = videoSource
         self.__ptz = ptz
+        self.pub = rospy.Publisher('telemetry', String, queue_size=10)
+        rospy.init_node('logger', anonymous=True)
         self.Start()
-
+        
     def __ReadFrameAsync(self):
         while True:
             if self.__stopRequested:
@@ -344,6 +350,12 @@ class CameraReaderAsync:
                     self.__zoom = (zoom/862.32)+1
                     self.__pan = pan
                     self.__tilt = tilt
+
+                    # ROS logger
+                    out = "{},{},{}".format(pan, tilt, zoom)
+                    # rospy.loginfo(out)
+                    self.pub.publish(out)
+                        
                 finally:
                     self.__telemetry_lock.release()
             sleep(0.01)
