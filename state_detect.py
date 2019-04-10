@@ -1,6 +1,7 @@
 import time
-import cv2
 import numpy as np
+import cv2
+
 from utils import expand_bbox
 
 def add_padding(rect_par, ratio, dims):

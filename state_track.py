@@ -1,9 +1,10 @@
 import argparse
-#import imutils
 import time
-import cv2
-from state_id import async_id
 import numpy as np
+import cv2
+
+from state_id import async_id
+
 def in_track_fn(parent):
     print('=== tracking')
 
@@ -37,7 +38,8 @@ def in_track_fn(parent):
         parent.logger.vout.write(cv_im) # logger video out
         if time.time() - local_timer > timeout:
             local_timer = time.time()
-            status = async_id(parent)
+            # status = async_id(parent)
+            status = async_id_fastai(parent)
             
             # exponential weighted moving average
             estimated_drone_prob = (1-alpha) * estimated_drone_prob + alpha*status

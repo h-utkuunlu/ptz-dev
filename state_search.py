@@ -9,7 +9,7 @@ def in_search_fn(parent):
     print('=== search')
     local_timer = time.time()
     #pan = int(random.random()*1000)+1
-    pan=0
+    pan = 0
     if pan > 500:
         pan = int((pan-500)*4.894/4)
     else:
@@ -30,7 +30,7 @@ def in_search_fn(parent):
     parent.in_pos()
 
 def out_search_fn(parent):
-    pxcnt=60
+    pxcnt = 60
     parent.bg_model = cv2.createBackgroundSubtractorKNN(detectShadows=False)
     init_count=0
     #cv2.namedWindow("bg model",cv2.WINDOW_NORMAL)
