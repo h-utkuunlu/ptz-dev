@@ -1,3 +1,4 @@
+"Tracker state as part of the PTZ tracker finite state machine"
 import argparse
 import time
 import numpy as np
@@ -38,8 +39,8 @@ def in_track_fn(parent):
         parent.logger.vout.write(cv_im) # logger video out
         if time.time() - local_timer > timeout:
             local_timer = time.time()
-            # status = async_id(parent)
-            status = async_id_fastai(parent)
+            status = async_id(parent)
+            # status = async_id_fastai(parent)
             
             # exponential weighted moving average
             estimated_drone_prob = (1-alpha) * estimated_drone_prob + alpha*status

@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
-import cv2
+"Starts the finite state machine for the PTZ tracker"
 import time
 import argparse
+import cv2
 
 from state_search import in_search_fn, out_search_fn
 from state_detect import in_detect_fn, out_detect_fn
@@ -25,19 +26,15 @@ if __name__ == "__main__":
         if flow.is_search():
             in_search_fn(flow)
             out_search_fn(flow)
-            pass
         elif flow.is_detect():
             in_detect_fn(flow)
             out_detect_fn(flow)
-            pass
         elif flow.is_id():
             in_id_fn(flow)
             out_id_fn(flow)
-            pass
         elif flow.is_track():
             in_track_fn(flow)
             out_track_fn(flow)
-            pass
 
     print('finishing up...')
     cv2.destroyAllWindows()
@@ -47,6 +44,3 @@ if __name__ == "__main__":
     flow.logger.close()
     #flow.logger.vout.release()  # logger video out
     print('done.')
-
-        
-    

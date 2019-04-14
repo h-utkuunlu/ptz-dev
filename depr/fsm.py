@@ -76,8 +76,7 @@ pip install transitions
         self.camera = Camera(PIDController(),PIDController(),PIDController())
         self.tracker = cv2.TrackerCSRT_create()
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
-        # self.network = initialize_net(model_path)
-        self.network = initialize_fastai_network(model_path)
+        self.network = initialize_net(model_path)
         
         # Initialization routine
         init_count = 0

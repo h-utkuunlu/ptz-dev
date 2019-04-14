@@ -1,3 +1,4 @@
+"Search state as part of the PTZ tracker finite state machine"
 from threading import Timer
 import time
 import random

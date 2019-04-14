@@ -1,3 +1,4 @@
+"Identification state as part of the PTZ tracker finite state machine"
 import time
 import cv2
 
@@ -5,7 +6,7 @@ from torchvision.transforms import Compose
 from torch import cat
 from fastai.vision import *
 
-from dnn import real_time_evaluate, read_stats, Normalize, Resize, ToTensor
+from dnn import real_time_evaluate, read_stats, Normalize, Resize, ToTensor, real_time_evaluate_fastai
 from utils import expand_bbox
 
 data_prep = Compose([ Resize(224), Normalize(read_stats("./dataset_stats")), ToTensor() ])
@@ -13,9 +14,11 @@ data_prep = Compose([ Resize(224), Normalize(read_stats("./dataset_stats")), ToT
 def in_id_fn(parent):
 
     drone = False
-    # transformed_ims = [data_prep(i) for i in parent.cur_imgs]
-    transformed_ims = [Image(data_prep(img)) for img in parent.cur_imgs]
-    predictions = real_time_evaluate_fastai(parent.network, transformed_ims)
+    transformed_ims = [data_prep(img) for img in parent.cur_imgs]
+    # transformed_ims = [Image(data_prep(img)) for img in parent.cur_imgs]
+    
+    predictions = real_time_evaluate(parent.network, transformed_ims)
+    # predictions = real_time_evaluate_fastai(parent.network, transformed_ims)
 
     for iter, pred in enumerate(predictions):
         if pred == 1:
@@ -69,7 +72,7 @@ def async_id_fastai(parent):
     roi = frame[y:y+h, x:x+w].copy()
     parent.gui.update(async_frame = roi)
     
-    prediction = real_time_evaluate_fastai(parent.network, data_prep(roi))[0]
+    prediction = real_time_evaluate_fastai(parent.network, Image(data_prep(roi)))[0]
     if prediction == 1:
         return 1
     else:

@@ -35,6 +35,10 @@ def initialize_net(model_path):
 
     return network
 
+def initialize_net_fastai(model_folder_path, model_file_name='export.pkl'):
+    "Returns fastai learner."
+    return load_learner(model_folder_path, fname=model_file_name)
+
 def read_stats(file):
     "Returns image stats from `file` as dictionary."
     with open(file, 'r') as f:
@@ -53,6 +57,13 @@ def real_time_evaluate(network, data):
         outputs = network(images)
         probs = outputs.cpu().numpy()
         results = (probs > 0.85).astype(int)
+
+    return results
+
+def real_time_evaluate_fastai(network, data):
+    "Returns predictions for the images provided in `data` by fastai learner."
+    images = [Image(image) for image in data]
+    results = [network.predict(img)[1].item() for img in images]  # TODO: run this in parallel
 
     return results
 
@@ -99,14 +110,3 @@ class ToTensor(object):
     def __call__(self, sample):
         image = sample.transpose((2, 0, 1))
         return torch.tensor(image, dtype=torch.float).unsqueeze(0)
-
-def initialize_net_fastai(model_folder_path, model_file_name='export.pkl'):
-    "Returns fastai learner."
-    return load_learner(model_folder_path, fname=model_file_name)
-
-def real_time_evaluate_fastai(network, data):
-    "Returns predictions for the images provided in `data` by fastai learner."
-    images = [Image(image) for image in data]
-    results = [network.predict(img)[1].item() for img in images]  # TODO: run this in parallel
-
-    return results
