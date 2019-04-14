@@ -358,8 +358,10 @@ class CameraReaderAsync:
                     # ROS logger
                     out = "{},{},{}".format(pan, tilt, zoom)
                     # rospy.loginfo(out)
-                    self.pub.publish(out)
-                        
+                    #start = time()
+                    #self.pub.publish(out)
+                    #print(f'ros publish took {round(time()-start,4)}s')
+                    
                 finally:
                     self.__telemetry_lock.release()
             sleep(0.01)
