@@ -1,7 +1,7 @@
+"Bucket of utlity function and classes"
 from threading import Thread
 from threading import Lock
 from time import sleep, time, strftime
-import cv2
 import re
 import binascii
 import socket
@@ -10,11 +10,14 @@ import os, sys
 import errno
 import numpy as np
 import random
+from std_msgs.msg import String
+import cv2
+
 from transitions import Machine, State
 from threading import Timer
-from dnn import initialize_net, Resize
 import rospy
-from std_msgs.msg import String
+
+from dnn import initialize_net, initialize_net_fastai, Resize
 
 class TelemetryLogger(object):
     def __init__(self, parent, filename=None):
@@ -167,6 +170,7 @@ pip install transitions
         self.tracker = cv2.TrackerCSRT_create()
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
         self.network = initialize_net(model_path)
+        # self.network = initialize_net_fastai(model_path)
         self.gui = SensibleWindows()
         self.logger = TelemetryLogger(self)
         
@@ -354,8 +358,10 @@ class CameraReaderAsync:
                     # ROS logger
                     out = "{},{},{}".format(pan, tilt, zoom)
                     # rospy.loginfo(out)
-                    self.pub.publish(out)
-                        
+                    #start = time()
+                    #self.pub.publish(out)
+                    #print(f'ros publish took {round(time()-start,4)}s')
+                    
                 finally:
                     self.__telemetry_lock.release()
             sleep(0.01)

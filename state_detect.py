@@ -1,6 +1,7 @@
-import time
-import cv2
+"Detection state as part of the PTZ tracker finite state machine"
 import numpy as np
+import cv2
+
 from utils import expand_bbox
 
 def add_padding(rect_par, ratio, dims):
@@ -25,7 +26,7 @@ def in_detect_fn(parent):
     area_threshold = 450
 
     found = False
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(kernel_size, kernel_size))
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     res = (parent.camera.width, parent.camera.height)
 
     while not parent.timer_expir:
@@ -61,5 +62,3 @@ def in_detect_fn(parent):
 
 def out_detect_fn(parent):
     pass
-
-

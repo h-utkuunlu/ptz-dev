@@ -68,7 +68,11 @@ pip install transitions
         self.timeout_interval = 5
 
         # Objects
-        self.machine = Machine(self, states=Flow.states, transitions=Flow.transitions, initial='search', auto_transitions=False)
+        self.machine = Machine(self, 
+                               states=Flow.states, 
+                               transitions=Flow.transitions, 
+                               initial='search', 
+                               auto_transitions=False)
         self.camera = Camera(PIDController(),PIDController(),PIDController())
         self.tracker = cv2.TrackerCSRT_create()
         self.timer_obj = Timer(self.timeout_interval, self.expiry, ())
