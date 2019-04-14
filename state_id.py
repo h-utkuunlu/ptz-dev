@@ -17,7 +17,7 @@ def in_id_fn(parent):
     transformed_ims = [data_prep(img) for img in parent.cur_imgs]
     # transformed_ims = [Image(data_prep(img)) for img in parent.cur_imgs]
     
-    predictions = real_time_evaluate(parent.network, transformed_ims)
+    predictions = real_time_evaluate(parent.network, cat(transformed_ims))
     # predictions = real_time_evaluate_fastai(parent.network, transformed_ims)
 
     for iter, pred in enumerate(predictions):
