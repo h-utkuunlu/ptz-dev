@@ -45,16 +45,12 @@ class TelemetryLogger(object):
         telemetry = self.parent.camera.cvreader.ReadTelemetry()
         # frame[y:y+h, x:x+w]
         if self.parent.drone_bbox is not None:
-            x, y, w, h = self.parent.drone_bbox 
-            obj_x = x + w//2
-            obj_y = y + h//2
+            x, y, w, h = [int(i) for i in self.parent.drone_bbox] 
         else:
-            obj_x = -1
-            obj_y = -1
-            
-        out = "%.3f,%d,%d,%d,%d,%d\n" %(time() - self.start_time, *telemetry, obj_x, obj_y)
-        
-        
+            x, y, w, h = -1, -1, -1, -1 
+
+        out = "%d,%d,%d,%d,%d,%d,%d,%d\n" %(int(round(time()*1000) - 1555587942159), *telemetry, x, y, w, h) 
+
         self.logfile.write(out)
         
 class SensibleWindows(object):
@@ -356,11 +352,8 @@ class CameraReaderAsync:
                     self.__tilt = tilt
 
                     # ROS logger
-                    out = "{},{},{}".format(pan, tilt, zoom)
-                    # rospy.loginfo(out)
-                    #start = time()
-                    #self.pub.publish(out)
-                    #print(f'ros publish took {round(time()-start,4)}s')
+                    out = "{},{},{},{},".format(int(round(time()*1000) - 1555587942159), pan, tilt, zoom)
+                    self.pub.publish(out)
                     
                 finally:
                     self.__telemetry_lock.release()
