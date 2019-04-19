@@ -68,9 +68,10 @@ def real_time_evaluate(network, data):
         images = data.to(device)
         outputs = network(images)
         probs = outputs.cpu().numpy()
-        results = (probs > 0.85).astype(int)
+        # results = (probs > 0.85).astype(int)
 
-    return results
+    return probs
+    # return results
 
 
 def real_time_evaluate_fastai(network, data):

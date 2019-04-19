@@ -52,6 +52,7 @@ class LTT:
         self.timer_expir = True  # bool for if timer expired
         self.bg_model = None
         self.frame_count = 1
+        self.detect_thresh = 0.85
 
         # Initialization routine
         init_count = 0
@@ -140,7 +141,6 @@ class Logger:
         out = "%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
             frame_count, int(round(time() * 1000) - self.start_time),
             *telemetry, x, y, w, h)
-
 
         self.logfile.write(out)
 
