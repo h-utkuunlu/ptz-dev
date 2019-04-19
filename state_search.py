@@ -45,7 +45,9 @@ def out_search_fn(system):
     system.bg_model = cv2.createBackgroundSubtractorKNN(detectShadows=False)
 
     pxcnt = 60
-    for init_count in range(pxcnt):
+    init_count = 0
+    while init_count < pxcnt:
+        #for init_count in range(pxcnt):
 
         # get most recent frame
         frame = system.get_frame()
@@ -55,6 +57,9 @@ def out_search_fn(system):
 
         # create background
         system.bg_model.apply(frame)
+
+        # increment bg generation counter
+        init_count += 1
 
     print("bg_generated")
 

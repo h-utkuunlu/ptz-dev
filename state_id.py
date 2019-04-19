@@ -22,21 +22,53 @@ def in_id_fn(system):
     # predictions = real_time_evaluate_fastai(system.network, transformed_ims)
 
     drone = False
-    max_pred_i = argmax(predictions)
-    max_pred = predictions[max_pred_i]
+    #max_pred_i = argmax(predictions)
+    #max_pred = predictions[max_pred_i]
+    candidates = []
 
-    if max_pred >= system.detect_thresh:
-        system.drone_bbox = system.cur_bboxes[max_pred_i]
-        system.fsm.drone()
-        drone = True
-        print("Drone identified")
+    for i, pred in enumerate(predictions):
+        if pred > system.detect_thresh:
+            candidates.append((pred, system.cur_bboxes[i]))
+    candidates.sort(reverse=True)
+    candidates = candidates[:20]
 
-    if not drone:
+    if len(candidates) == 0:
         system.fsm.not_drone()
+
+    else:
+        itered_contours = [i[1] for i in candidates]
+        prev_itered_contours = []
+        while itered_contours != prev_itered_contours and len(
+                itered_contours) > 1:
+            prev_itered_contours = list(itered_contours)
+            itered_contours = []
+            prev_c = prev_itered_contours[0]
+            for c in prev_itered_contours[1:]:
+                merged_rect = (min(c[0], prev_c[0]), min(c[1], prev_c[1]),
+                               max(c[0] + c[2], prev_c[0] + prev_c[2]) -
+                               min(c[0], prev_c[0]),
+                               max(c[1] + c[3], prev_c[1] + prev_c[3]) -
+                               min(c[1], prev_c[1]))
+                x, y, w, h = merged_rect
+
+                if prev_c[2] + c[2] >= w and prev_c[3] + c[3] >= h:
+                    itered_contours.append(merged_rect)
+                    prev_c = merged_rect
+                else:
+                    prev_c = c
+
+        areas = list(map(lambda x: x[2] * x[3], itered_contours))
+        system.drone_bbox = itered_contours[areas.index(max(areas))]
+        system.fsm.drone()
+        print("Drone identified")
 
 
 def out_id_fn(system):
     pass
+
+
+def area(rect):
+    return rect[2] * rect[3]
 
 
 def async_id(system, frame):
