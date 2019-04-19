@@ -11,6 +11,7 @@ from fastai.vision import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def initialize_net(model_path):
     "Returns pytorch CNN."
     network = models.resnet50(pretrained=True)
@@ -35,9 +36,11 @@ def initialize_net(model_path):
 
     return network
 
+
 def initialize_net_fastai(model_folder_path, model_file_name='export.pkl'):
     "Returns fastai learner."
     return load_learner(model_folder_path, fname=model_file_name)
+
 
 def read_stats(file):
     "Returns image stats from `file` as dictionary."
@@ -45,10 +48,19 @@ def read_stats(file):
         reader = csv.reader(f, delimiter=",")
         for raw_stats in reader:
             stats = {
-                "img_mean": [float(raw_stats[0]), float(raw_stats[1]), float(raw_stats[2])],
-                "img_std": [float(raw_stats[3]), float(raw_stats[4]), float(raw_stats[5])]
+                "img_mean": [
+                    float(raw_stats[0]),
+                    float(raw_stats[1]),
+                    float(raw_stats[2])
+                ],
+                "img_std": [
+                    float(raw_stats[3]),
+                    float(raw_stats[4]),
+                    float(raw_stats[5])
+                ]
             }
     return stats
+
 
 def real_time_evaluate(network, data):
     "Returns predictions for the images provided in `data` by pytorch CNN."
@@ -60,12 +72,15 @@ def real_time_evaluate(network, data):
 
     return results
 
+
 def real_time_evaluate_fastai(network, data):
     "Returns predictions for the images provided in `data` by fastai learner."
     images = [Image(image) for image in data]
-    results = [network.predict(img)[1].item() for img in images]  # TODO: run this in parallel
+    results = [network.predict(img)[1].item()
+               for img in images]  # TODO: run this in parallel
 
     return results
+
 
 def load_model(model_name, network, optimizer=None):
     "Loads model at `model_name` into `network` (optional optimizer change)."
@@ -78,20 +93,26 @@ def load_model(model_name, network, optimizer=None):
 
     print("Model load successful")
 
+
 class Normalize(object):
     "Normalizes image based on training data."
+
     def __init__(self, stats):
         self.stats = stats
 
     def __call__(self, image):
-        img_mean = np.asarray(self.stats["img_mean"], dtype=float).reshape(1, 1, 3)
-        img_std = np.asarray(self.stats["img_std"], dtype=float).reshape(1, 1, 3)
+        img_mean = np.asarray(self.stats["img_mean"],
+                              dtype=float).reshape(1, 1, 3)
+        img_std = np.asarray(self.stats["img_std"],
+                             dtype=float).reshape(1, 1, 3)
         norm_image = (np.asarray(image, dtype=float) - img_mean) / img_std
 
         return norm_image
 
+
 class Resize(object):
     "Resizes images to square according to `size` attribute."
+
     def __init__(self, size):
         self.size = size
 
@@ -101,12 +122,15 @@ class Resize(object):
         else:
             interpolation = cv2.INTER_AREA
 
-        image = cv2.resize(sample, (self.size, self.size), interpolation=interpolation)
+        image = cv2.resize(sample, (self.size, self.size),
+                           interpolation=interpolation)
 
         return image
 
+
 class ToTensor(object):
     "Converts image to tensor."
+
     def __call__(self, sample):
         image = sample.transpose((2, 0, 1))
         return torch.tensor(image, dtype=torch.float).unsqueeze(0)

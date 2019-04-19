@@ -1,56 +1,64 @@
 "Search state as part of the PTZ tracker finite state machine"
 from threading import Timer
 import time
-import random
 import cv2
-import numpy as np
 
 
-def in_search_fn(parent):
+def in_search_fn(system):
+    """Search heuristic."""
     print('=== search')
     local_timer = time.time()
-    #pan = int(random.random()*1000)+1
-    pan = 0
-    if pan > 500:
-        pan = int((pan-500)*4.894/4)
+    #pan_target = int(random.random()*1000)+1
+    pan_target = 0
+    if pan_target > 500:
+        pan_target = int((pan_target - 500) * 4.894 / 4)
     else:
-        pan = int(65535 - pan*4.894/4)
-    
+        pan_target = int(65535 - pan_target * 4.894 / 4)
+
+    # move camera into position
     in_pos = False
     while not in_pos:
-        if time.time() > local_timer + 0.5:
-            local_timer = time.time()
-            parent.telemetry = parent.camera.cvreader.ReadTelemetry()
-            if parent.telemetry[0] == pan and parent.telemetry[2] == 1:
-                in_pos = True
-            else:
-                parent.camera.ptz.goto(pan,0,24)
-                parent.camera.ptz.zoomto(0)
-                                
-    print("in_pos")    
-    parent.in_pos()
-
-def out_search_fn(parent):
-    pxcnt = 60
-    parent.bg_model = cv2.createBackgroundSubtractorKNN(detectShadows=False)
-    init_count=0
-    #cv2.namedWindow("bg model",cv2.WINDOW_NORMAL)
-    while init_count < pxcnt+1:
-        frame = parent.camera.cvreader.Read()
-        #cv2.imshow('frame_orig',frame)
+        # Update GUI
+        frame = system.get_frame()
         if frame is None:
             continue
-        if not parent.gui.initialized:
-            parent.gui.init(frame)
-        else:
-            parent.gui.update(frame=frame)
-        _ = parent.bg_model.apply(frame)
-        parent.logger.vout.write(frame) # logger video out
-        init_count += 1
-    #bg_img = parent.bg_model.getBackgroundImage()
-    #cv2.imshow("bg model", bg_img)
-    #cv2.waitKey(1)
+        system.update_gui(frame=frame)
+
+        time.sleep(1 / 30)
+        if time.time() > local_timer + 0.5:
+            local_timer = time.time()
+            telemetry = system.get_telemetry()
+            pan, tilt, zoom = telemetry
+            if pan == pan_target and zoom == 0:
+                in_pos = True
+            else:
+                system.camera.ptz.goto(pan_target, 0, 24)
+                system.camera.ptz.zoomto(0)
+
+    # trigger in_pos transition
+    print("in_pos")
+    system.fsm.in_pos()
+
+
+def out_search_fn(system):
+    """Generates background model."""
+    system.bg_model = cv2.createBackgroundSubtractorKNN(detectShadows=False)
+
+    pxcnt = 60
+    for init_count in range(pxcnt):
+
+        # get most recent frame
+        frame = system.get_frame()
+        if frame is None:
+            continue
+        system.update_gui(frame=frame)
+
+        # create background
+        system.bg_model.apply(frame)
+
     print("bg_generated")
-    parent.timer_expir = False
-    parent.timer_obj = Timer(parent.timeout_interval, parent.expiry, ())  
-    parent.timer_obj.start()
+
+    # set and start timer for detection state
+    system.timer_expir = False
+    system.timer_obj = Timer(system.timeout_interval, system.expiry, ())
+    system.timer_obj.start()

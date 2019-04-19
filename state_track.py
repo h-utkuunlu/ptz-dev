@@ -1,78 +1,94 @@
 "Tracker state as part of the PTZ tracker finite state machine"
-import argparse
 import time
 import numpy as np
 import cv2
 
 from state_id import async_id
 
-def in_track_fn(parent):
+
+def in_track_fn(system):
     print('=== tracking')
 
-    frame = parent.gui.frame
-    success = parent.tracker.init(frame, parent.drone_bbox)
+    # start tracker on identified frame
+    success = system.start_tracker()
 
+    # set timer
     local_timer = time.time()
     timeout = 0.5
+
+    # estimated moving average parameters
     estimated_drone_prob = 1.0
-    alpha = 0.125  # param value influences exponential weighted moving average
-    
+    alpha = 0.1
+
     while success:
-        zoom = parent.camera.cvreader.ReadTelemetry()[2]
-        move(parent, zoom)
-        frame = parent.camera.cvreader.Read()
+        zoom = system.get_telemetry()[2]
+        move(system, zoom)
+
+        # get next frame
+        frame = system.get_frame()
         if frame is None:
             continue
-        success, parent.drone_bbox = parent.tracker.update(frame)
+
+        # update tracker
+        success, system.drone_bbox = system.tracker.update(frame)
         if not success:
-            parent.camera.ptz.stop()
-            parent.camera.ptz.zoomto(0)
+            system.camera.ptz.stop()
+            system.camera.ptz.zoomto(0)
             break
 
         # Draw bounding box
-        x, y, w, h = parent.drone_bbox
+        x, y, w, h = system.drone_bbox
         cv_im = frame.copy()
         p1 = (int(x), int(y))
         p2 = (int(x + w), int(y + h))
-        cv2.rectangle(cv_im, p1, p2, (255,0,0), 2, 1)
-        parent.gui.update(frame=cv_im)
-        parent.logger.vout.write(cv_im) # logger video out
+        cv2.rectangle(cv_im, p1, p2, (255, 0, 0), 2, 1)
+        system.update_gui(frame=cv_im)
+
+        # if time is left, identify object in bbox
         if time.time() - local_timer > timeout:
-            local_timer = time.time()
-            status = async_id(parent)
-            # status = async_id_fastai(parent)
-            
+            status = async_id(system, frame)
+
             # exponential weighted moving average
-            estimated_drone_prob = (1-alpha) * estimated_drone_prob + alpha*status
+            estimated_drone_prob = (
+                1 - alpha) * estimated_drone_prob + alpha * status
+
+            # reset timer
+            local_timer = time.time()
+
+            # drone is probably lost
             if estimated_drone_prob < 0.5:
                 break
-        if parent.gui.RESET or parent.gui.ABORT:
-            parent.gui.RESET = False
+
+        # user quit inititated
+        if system.gui.RESET or system.gui.ABORT:
+            system.gui.RESET = False
             break
 
-        #Log
-        parent.logger.log()
-    
-    parent.lost_track()
+    system.fsm.lost_track()
 
-def move(parent, zoom):
-    
+
+def move(system, zoom):
+
     # control camera
-    x, y, w, h = parent.drone_bbox
-    center = (x + w/2, y + h/2)
-    pan_error, tilt_error = parent.camera.errors_pt(center, parent.camera.width, parent.camera.height)
-    zoom_error = parent.camera.error_zoom(max(w, h), parent.camera.height)
-    parent.camera.control(pan_error=pan_error/scale_factor(zoom), tilt_error=tilt_error/scale_factor(zoom))
-    parent.camera.control_zoom(zoom_error)
-    return (x,y,w,h)
-    
-def scale_factor(zoom_factor):
-    zoom_value = (zoom_factor-1)*862.32
-    factor = 0.1214*np.exp(318.16*10**(-6)*zoom_value) + 1.0605
+    x, y, w, h = system.drone_bbox
+    center = (x + w / 2, y + h / 2)
+    pan_error, tilt_error = system.camera.errors_pt(center,
+                                                    system.camera.width,
+                                                    system.camera.height)
+    zoom_error = system.camera.error_zoom(max(w, h), system.camera.height)
+    system.camera.control(pan_error=pan_error / scale_factor(zoom),
+                          tilt_error=tilt_error / scale_factor(zoom))
+    system.camera.control_zoom(zoom_error)
+
+
+def scale_factor(zoom_value):
+    factor = 0.1214 * np.exp(318.16 * 10**(-6) * zoom_value) + 1.0605
+    factor = factor / 1.3
     return factor
 
-def out_track_fn(parent):
+
+def out_track_fn(system):
     print('lost_track')
-    #parent.tracker.clear()
-    parent.tracker = cv2.TrackerCSRT_create()
-    
+
+    # reinitialize short-term tracker
+    system.tracker = cv2.TrackerCSRT_create()
