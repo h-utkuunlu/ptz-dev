@@ -1,6 +1,7 @@
 "Identification state as part of the PTZ tracker finite state machine"
 from torchvision.transforms import Compose
 from torch import cat
+from numpy import argmax
 from fastai.vision import *
 
 from dnn import real_time_evaluate, read_stats, Normalize, Resize, ToTensor
@@ -21,15 +22,14 @@ def in_id_fn(system):
     # predictions = real_time_evaluate_fastai(system.network, transformed_ims)
 
     drone = False
-    for iter, pred in enumerate(predictions):
-        if pred == 1:
-            system.drone_bbox = system.cur_bboxes[iter]
-            system.fsm.drone()
-            drone = True
-            print("Drone identified")
-            break
-        else:
-            pass
+    max_pred_i = argmax(predictions)
+    max_pred = predictions[max_pred_i]
+
+    if max_pred >= system.detect_thresh:
+        system.drone_bbox = system.cur_bboxes[max_pred_i]
+        system.fsm.drone()
+        drone = True
+        print("Drone identified")
 
     if not drone:
         system.fsm.not_drone()
@@ -55,7 +55,7 @@ def async_id(system, frame):
     system.update_gui(async_frame=roi)
 
     prediction = real_time_evaluate(system.network, data_prep(roi))[0]
-    if prediction == 1:
+    if prediction >= system.detect_thresh:
         return 1
     else:
         return 0
