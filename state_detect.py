@@ -43,7 +43,7 @@ def in_detect_fn(system):
 
         system.update_gui(frame=frame,
                           ch3_fgmask=cv2.cvtColor(fgmask, cv2.COLOR_GRAY2BGR))
-
+        
         _, contours, _ = cv2.findContours(fgmask, cv2.RETR_LIST,
                                           cv2.CHAIN_APPROX_TC89_L1)
 

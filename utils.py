@@ -77,6 +77,7 @@ class LTT:
 
     def log_video(self, frame):
         self.logger.log_video(frame, self.drone_bbox)
+        self.logger.log_fgmask()
         self.frame_count += 1
 
     def update_gui(self, frame=None, ch3_fgmask=None, async_frame=None):
@@ -120,6 +121,9 @@ class Logger:
         self.vout = cv2.VideoWriter('.' + self.filename.split('.')[1] + '.avi',
                                     self.fourcc, fps,
                                     (camera_width, camera_height))
+        self.fg_vout = cv2.VideoWriter('.' + self.filename.split('.')[1] + 'fg.avi',
+                                    self.fourcc, fps,
+                                    (camera_width, camera_height))
 
         # opening and initializing log file
         self.start_time = start_time
@@ -147,6 +151,8 @@ class Logger:
     def log_video(self, frame, bbox):
         self.vout.write(frame)
 
+    def log_fgmask(self):
+        self.fg_vout.write(self.gui.ch3_fgmask)
 
 class GUI:
     def __init__(self, frame_name='main_window'):
