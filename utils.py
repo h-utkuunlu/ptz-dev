@@ -110,7 +110,7 @@ class Logger:
         # initialize file name
         if filename is None:
             timestamp = strftime("%d-%m-%Y_%H-%M-%S")
-            logname = "./flight_logs/debug/" + timestamp + ".log"  # TEMPORARILY SAVE TO DEBUG
+            logname = "./flight_logs/" + timestamp + ".log"
             self.filename = logname
         else:
             self.filename = filename

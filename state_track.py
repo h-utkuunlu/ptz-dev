@@ -75,7 +75,7 @@ def move(system, zoom):
     pan_error, tilt_error = system.camera.errors_pt(center,
                                                     system.camera.width,
                                                     system.camera.height)
-    zoom_error = system.camera.error_zoom(max(w, h), system.camera.height)
+    zoom_error = system.camera.error_zoom(w, system.camera.height)
     system.camera.control(pan_error=pan_error / scale_factor(zoom),
                           tilt_error=tilt_error / scale_factor(zoom))
     system.camera.control_zoom(zoom_error)
@@ -83,8 +83,7 @@ def move(system, zoom):
 
 def scale_factor(zoom_value):
     factor = 0.1214 * np.exp(318.16 * 10**(-6) * zoom_value) + 1.0605
-    factor = factor / 1.3
-    return factor
+    return factor * 1.3
 
 
 def out_track_fn(system):
