@@ -25,7 +25,7 @@ def in_detect_fn(system):
     # Tuning parameters
     kernel_size = 5
     padding_ratio = 0.1
-    area_threshold = 1000
+    area_threshold = 100
 
     found = False
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,
@@ -38,8 +38,10 @@ def in_detect_fn(system):
             continue
 
         fgmask = system.bg_model.apply(frame)
-        fgmask = cv2.medianBlur(fgmask, 9)
-        fgmask = cv2.dilate(fgmask, kernel, iterations=5)
+        fgmask = cv2.medianBlur(fgmask, 3)
+        fgmask = cv2.dilate(fgmask, kernel, iterations=1)
+        #fgmask = cv2.medianBlur(fgmask, 9)
+        #fgmask = cv2.dilate(fgmask, kernel, iterations=5)
 
         system.update_gui(frame=frame,
                           ch3_fgmask=cv2.cvtColor(fgmask, cv2.COLOR_GRAY2BGR))

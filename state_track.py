@@ -91,3 +91,4 @@ def out_track_fn(system):
 
     # reinitialize short-term tracker
     system.tracker = cv2.TrackerCSRT_create()
+    system.drone_bbox = None
